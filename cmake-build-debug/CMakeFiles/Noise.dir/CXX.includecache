@@ -1,0 +1,34 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/AlexanderLingtorp/Google Drive/Repositories/Noise/main.cpp
+iostream
+-
+noise.hpp
+/Users/AlexanderLingtorp/Google Drive/Repositories/Noise/noise.hpp
+SDL2/SDL.h
+-
+
+/Users/AlexanderLingtorp/Google Drive/Repositories/Noise/noise.hpp
+random
+-
+vector.hpp
+/Users/AlexanderLingtorp/Google Drive/Repositories/Noise/vector.hpp
+iostream
+-
+
+/Users/AlexanderLingtorp/Google Drive/Repositories/Noise/vector.hpp
+math.h
+-
+ostream
+-
+cmath
+-
+vector
+-
+

@@ -1,0 +1,3 @@
+/Users/AlexanderLingtorp/Google Drive/Repositories/Noise/cmake-build-debug/CMakeFiles/edit_cache.dir
+/Users/AlexanderLingtorp/Google Drive/Repositories/Noise/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/Users/AlexanderLingtorp/Google Drive/Repositories/Noise/cmake-build-debug/CMakeFiles/Noise.dir
