@@ -31,32 +31,32 @@ public:
     }
 
     /// Octabes of 2D Perlin noise
-    double octaves_of_perlin2d(int x, int y, int intensity, int amplitude) const {
+    double octaves_of_perlin_2d(int x, int y, int intensity, double amplitude) const {
         float total = 0.0;
-        int n = intensity; // noise intensity
-        int p = amplitude; // noise amplitude (0) - plains, (1) - rugged, (2) - hills, (3) - mountains
+        int n = intensity;
+        double p = amplitude;
 
         for (unsigned int i = 0; i < n; ++i )  {
             int freq = 1 << i; // 2^i
-            double amp = pow(p, i);
-            // tot += noise( x * freq ) * amp;
-            total += perlin2d(x * freq, y * freq) * amp;
+            double amp = std::pow(p, i);
+            // total += noise( x * freq ) * amp;
+            total += perlin_2d(x * freq, y * freq) * amp;
         }
         return total;
     }
 
     /// 2D Perlin noise (x, y), chunk_pos gives the frame for the coord (x, y) and dimension is the chunks size
-    double perlin2d(double X, double Y) const {
+    double perlin_2d(double X, double Y) const {
         /// Compress the coordinates inside the chunk; double part + int part = point coordinate
         X += 0.01; Y += 0.01; // Scale coordinates to avoid integer becoming zero
-        double yf = Y - std::floor(Y); // Float offset inside the chunk (0, 1)
-        double xf = X - std::floor(X); // Float offset inside the chunk (0, 1)
-
         /// Grid points from the chunk in the world
         int X0 = (int) std::floor(X);
         int Y0 = (int) std::floor(Y);
         int X1 = (int) std::ceil(X);
         int Y1 = (int) std::ceil(Y);
+
+        double yf = Y - Y0; // Float offset inside the chunk (0, 1)
+        double xf = X - X0; // Float offset inside the chunk (0, 1)
 
         /// Gradients using hashed indices from lookup list
         Vec2<double> x0y0 = grads[perms[(X0 + perms[Y0 % perms.size()]) % perms.size()]];
