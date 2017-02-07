@@ -13,7 +13,7 @@ class Noise {
     std::vector<int> perms;
 
 public:
-    Noise(uint64_t seed): engine(seed), grads(256), distr(0, 1), perms(256) {
+    Perlin(uint64_t seed): engine(seed), grads(256), distr(-1, 1), perms(256) {
         /// Fill the gradients list with random normalized vectors
         for (int i = 0; i < grads.size(); i++) {
             double x = distr(engine);
@@ -30,19 +30,20 @@ public:
         std::shuffle(perms.begin(), perms.end(), engine);
     }
 
-    /// Octabes of 2D Perlin noise
-    double octaves_of_perlin_2d(int x, int y, int intensity, double amplitude) const {
-        float total = 0.0;
-        int n = intensity;
-        double p = amplitude;
+    /// Octaves of 2D noise
+    /// Produces fractal noise (a.k.a brown noise/brownian noise)
+    double octaves_of_2d(double x, double y, int octaves, double persistance = 1.0) const {
+        double total = 0.0;
 
-        for (unsigned int i = 0; i < n; ++i )  {
-            int freq = 1 << i; // 2^i
-            double amp = std::pow(p, i);
-            // total += noise( x * freq ) * amp;
-            total += perlin_2d(x * freq, y * freq) * amp;
+        double max_value = 0.0;
+        for (size_t i = 0; i < octaves; ++i) {
+            auto freq = std::pow(2, i);
+            auto amplitude = std::pow(persistance, i);
+            max_value += amplitude;
+            total += noise_2d(x * freq, y * freq) * amplitude;
         }
-        return total;
+
+        return total / max_value;
     }
 
     /// 2D Perlin noise (x, y), chunk_pos gives the frame for the coord (x, y) and dimension is the chunks size
