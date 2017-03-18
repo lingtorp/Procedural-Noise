@@ -174,15 +174,15 @@ public:
         double zf = Z - Z0; // Float offset inside the cube [0, 1]
 
         /// Gradients using hashed indices from lookup list
-        Vec3<double> x0y0z0 = grads3[perms[(X0 + perms[Y0 + perms[Z0 % perms.size()]]) % perms.size()]];
-        Vec3<double> x1y0z0 = grads3[perms[(X1 + perms[Y0 % perms[Z0 % perms.size()]]) % perms.size()]];
-        Vec3<double> x0y1z0 = grads3[perms[(X0 + perms[Y1 % perms[Z0 % perms.size()]]) % perms.size()]];
-        Vec3<double> x1y1z0 = grads3[perms[(X1 + perms[Y1 % perms[Z0 % perms.size()]]) % perms.size()]];
+        Vec3<double> x0y0z0 = grads3[perms[(X0 + perms[(Y0 + perms[Z0 % perms.size()]) % perms.size()]) % perms.size()]];
+        Vec3<double> x1y0z0 = grads3[perms[(X1 + perms[(Y0 + perms[Z0 % perms.size()]) % perms.size()]) % perms.size()]];
+        Vec3<double> x0y1z0 = grads3[perms[(X0 + perms[(Y1 + perms[Z0 % perms.size()]) % perms.size()]) % perms.size()]];
+        Vec3<double> x1y1z0 = grads3[perms[(X1 + perms[(Y1 + perms[Z0 % perms.size()]) % perms.size()]) % perms.size()]];
 
-        Vec3<double> x0y0z1 = grads3[perms[(X0 + perms[Y0 + perms[Z1 % perms.size()]]) % perms.size()]];
-        Vec3<double> x1y0z1 = grads3[perms[(X1 + perms[Y0 + perms[Z1 % perms.size()]]) % perms.size()]];
-        Vec3<double> x0y1z1 = grads3[perms[(X0 + perms[Y1 + perms[Z1 % perms.size()]]) % perms.size()]];
-        Vec3<double> x1y1z1 = grads3[perms[(X1 + perms[Y1 + perms[Z1 % perms.size()]]) % perms.size()]];
+        Vec3<double> x0y0z1 = grads3[perms[(X0 + perms[(Y0 + perms[Z1 % perms.size()]) % perms.size()]) % perms.size()]];
+        Vec3<double> x1y0z1 = grads3[perms[(X1 + perms[(Y0 + perms[Z1 % perms.size()]) % perms.size()]) % perms.size()]];
+        Vec3<double> x0y1z1 = grads3[perms[(X0 + perms[(Y1 + perms[Z1 % perms.size()]) % perms.size()]) % perms.size()]];
+        Vec3<double> x1y1z1 = grads3[perms[(X1 + perms[(Y1 + perms[Z1 % perms.size()]) % perms.size()]) % perms.size()]];
 
         /// Vectors from gradients to point in unit cube
         auto v000 = Vec3<double>{X - X0, Y - Y0, Z - Z0};
