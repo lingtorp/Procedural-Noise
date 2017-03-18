@@ -21,14 +21,15 @@ public:
     /// 2D fractional Brownian motion noise of the underlying noise algorithm
     double octaves(double x, double y, int octaves, double persistance = 1.0) const {
         double total = 0.0;
-
         double max_value = 0.0;
+        double frequency = 1.0;
+        double amplitude = 1.0;
         for (size_t i = 0; i < octaves; ++i) {
-            auto freq = std::pow(2, i);
-            auto amplitude = std::pow(persistance, i);
+            total += get_value(x * frequency, y * frequency) * amplitude;
             max_value += amplitude;
-            auto noise = get_value(x * freq, y * freq);
-            total += noise * amplitude;
+
+            amplitude *= persistance;
+            frequency *= 2;
         }
 
         // Dividing by the max amplitude sum bring it into [-1, 1] range
@@ -38,14 +39,15 @@ public:
     /// 3D fractional Brownian motion noise of the underlying noise algorithm
     double octaves(double x, double y, double z, int octaves, double persistance = 1.0) const {
         double total = 0.0;
-
         double max_value = 0.0;
+        double frequency = 1.0;
+        double amplitude = 1.0;
         for (size_t i = 0; i < octaves; ++i) {
-            auto freq = std::pow(2, i);
-            auto amplitude = std::pow(persistance, i);
+            total += get_value(x * frequency, y * frequency, z * frequency) * amplitude;
             max_value += amplitude;
-            auto noise = get_value(x * freq, y * freq, z * freq);
-            total += noise * amplitude;
+
+            amplitude *= persistance;
+            frequency *= 2;
         }
 
         // Dividing by the max amplitude sum bring it into [-1, 1] range
