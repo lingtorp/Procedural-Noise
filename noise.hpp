@@ -18,14 +18,35 @@ public:
     /// 3D raw noise from the underlying noise algorithm
     virtual double get_value(double x, double y, double z) const = 0;
 
+    /// 3D turbulence noise which simulates fBm
+    double turbulence(double x, double y, double zoom_factor) {
+        double value = 0;
+        double zoom = zoom_factor;
+        while (zoom >= 1.0) {
+            value += get_value(x / zoom, y / zoom) * zoom;
+            zoom /= 2;
+        }
+        return value / zoom_factor;
+    }
+
+    /// 3D turbulence noise which simulates fBm
+    double turbulence(double x, double y, double z, double zoom_factor) {
+        double value = 0;
+        double zoom = zoom_factor;
+        while (zoom >= 1.0) {
+            value += get_value(x / zoom, y / zoom, z / zoom) * zoom;
+            zoom /= 2;
+        }
+        return value / zoom_factor;
+    }
+
     /// 2D fractional Brownian motion noise of the underlying noise algorithm
-    double octaves(double x, double y, int octaves, double persistance = 1.0) const {
+    double octaves(double x, double y, int octaves, double persistance = 1.0, double amplitude = 1.0) const {
         double total = 0.0;
         double max_value = 0.0;
         double frequency = 1.0;
-        double amplitude = 1.0;
         for (size_t i = 0; i < octaves; ++i) {
-            total += get_value(x * frequency, y * frequency) * amplitude;
+            total += get_value(x / frequency, y / frequency) * amplitude;
             max_value += amplitude;
 
             amplitude *= persistance;
@@ -37,13 +58,12 @@ public:
     }
 
     /// 3D fractional Brownian motion noise of the underlying noise algorithm
-    double octaves(double x, double y, double z, int octaves, double persistance = 1.0) const {
+    double octaves(double x, double y, double z, int octaves, double persistance = 1.0, double amplitude = 1.0) const {
         double total = 0.0;
         double max_value = 0.0;
         double frequency = 1.0;
-        double amplitude = 1.0;
         for (size_t i = 0; i < octaves; ++i) {
-            total += get_value(x * frequency, y * frequency, z * frequency) * amplitude;
+            total += get_value(x / frequency, y / frequency, z / frequency) * amplitude;
             max_value += amplitude;
 
             amplitude *= persistance;
