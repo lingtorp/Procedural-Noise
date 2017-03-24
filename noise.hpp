@@ -84,14 +84,103 @@ protected:
 
 /// Simplex noise implementation, a.k.a 'improved Perlin' noise
 class Simplex : public Noise {
-    double get_value(double x, double y) const {
-        /// Skew the input (x, y) to (x', y')
-        auto s = (x + y) / 2;
-        auto X = x + s;
-        auto Y = y + s;
+    // Implementation details for generation of gradients
+    std::mt19937 engine;
+    std::uniform_real_distribution<> distr;
 
+    /// 2D Normalized gradients table
+    std::vector<Vec2<double>> grads2;
 
+    /// 3D Normalized gradients table
+    std::vector<Vec3<double>> grads3;
+
+    /// Permutation table for indices to the gradients
+    std::vector<int> perms;
+
+public:
+    Simplex(uint64_t seed): engine(seed), grads2(256), grads3(256), distr(-1.0, 1.0), perms(256) {
+        /// Fill the gradients list with random normalized vectors
+        for (int i = 0; i < grads2.size(); i++) {
+            double x = distr(engine);
+            double y = distr(engine);
+            double z = distr(engine);
+            auto grad_vector = Vec2<double>{x, y}.normalize();
+            grads2[i] = grad_vector;
+            auto grad3_vector = Vec3<double>{x, y, z}.normalize();
+            grads3[i] = grad3_vector;
+        }
+
+        /// Fill gradient lookup array with random indices to the gradients list
+        /// Fill with indices from 0 to perms.size()
+        std::iota(perms.begin(), perms.end(), 0);
+
+        /// Randomize the order of the indices
+        std::shuffle(perms.begin(), perms.end(), engine);
     }
+
+    double get_value(double x, double y) const {
+        x += 0.01; y += 0.01; // Skew coordinates to avoid integer lines becoming zero
+        /// 1. Coordinate skewing
+        /// Skew the input (x, y) to (x', y')
+        const auto F = (std::sqrt(2 + 1) - 1) / 2; // Scale factor: sqrt(n + 1) - 1 / n
+        auto s = (x + y) * F; // s for skewed
+        auto xs = x + s;
+        auto ys = y + s;
+
+        /// Determine which of the skewed unit hypercubes (x, y) lies within
+        auto xs0 = (int) std::floor(xs); // Vertex A coordinates
+        auto ys0 = (int) std::floor(ys);
+
+        /// 2. Simplical subdivision - finding the simplex consisting of vertices (A, B, C)
+        /// Simplex vertices
+        auto xs1 = 0; // Vertex B coordinates
+        auto ys1 = 0;
+        auto xs2 = xs0 + F + F + 1; // Last vertex (C) is always the same
+        auto ys2 = ys0 + F + F + 1;
+        // Checks which simplex the point (xs, ys) is in
+        if (xs > ys) { // Upper triangle
+            xs1 = xs0 + F;
+            ys1 = ys0 + F + 1;
+        } else {       // Lower triangle
+            xs2 = xs0 + F + 1;
+            ys2 = ys0 + F;
+        }
+
+        /// 3. Gradient selection
+        // Hash the coordinates of the simplex to get the gradient indices for A, B, C
+        auto gai = perms[((xs0     % perms.size()) + perms[ys0     % perms.size()]) % perms.size()];
+        auto gbi = perms[((xs0 + 1 % perms.size()) + perms[ys0     % perms.size()]) % perms.size()];
+        auto gci = perms[((xs0 + 1 % perms.size()) + perms[ys0 + 1 % perms.size()]) % perms.size()];
+
+        auto ga = grads2[gai];
+        auto gb = grads2[gbi];
+        auto gc = grads2[gci];
+
+        /// 4. Kernel (gradient) summation
+        const auto G = (1 - 1/std::sqrt(2 + 1)) / 2;
+        auto x1 = xs1 + (xs1 + ys1) * G;
+        auto y1 = ys1 + (xs1 + ys1) * G;
+
+        auto x2 = xs2 + (xs2 + ys2) * G;
+        auto y2 = ys2 + (xs2 + ys2) * G;
+
+        /// Displacement vectors for point (x, y)
+        auto x0 = std::floor(x);
+        auto y0 = std::floor(y);
+        Vec2<double> da = {x - x0, y - y0};
+        Vec2<double> db = {x - x1, y - y1};
+        Vec2<double> dc = {x - x2, y - y2};
+        /// Gradient contributions from the vertices
+        double radius = 0.5 * 0.5;
+        auto result_a = std::max(0.0, radius - da.length() * da.length()) * da.dot(ga);
+        auto result_b = std::max(0.0, radius - db.length() * db.length()) * db.dot(gb);
+        auto result_c = std::max(0.0, radius - dc.length() * dc.length()) * dc.dot(gc);
+
+        return 70*(result_a + result_b + result_c);
+    }
+
+    // TODO: Implement
+    double get_value(double x, double y, double z) const { exit(0); return 0.0; }
 };
 
 /// OpenSimplex noise implementation
@@ -99,6 +188,9 @@ class OpenSimplex : public Noise {
     double get_value(double x, double y)  const {
         return 0.0;
     }
+
+    // TODO: Implement
+    double get_value(double x, double y, double z) const { exit(0); return 0.0; }
 };
 
 /// Standard Perlin noise implementation
@@ -139,7 +231,7 @@ public:
 
     double get_value(double X, double Y) const {
         /// Compress the coordinates inside the chunk; double part + int part = point coordinate
-        X += 0.01; Y += 0.01; // Scale coordinates to avoid integer lines becoming zero
+        X += 0.01; Y += 0.01; // Skew coordinates to avoid integer lines becoming zero
         /// Grid points from the chunk in the world
         int X0 = (int) std::floor(X);
         int Y0 = (int) std::floor(Y);
