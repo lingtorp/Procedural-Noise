@@ -142,8 +142,8 @@ public:
             xs1 = xs0 + F;
             ys1 = ys0 + F + 1;
         } else {       // Lower triangle
-            xs2 = xs0 + F + 1;
-            ys2 = ys0 + F;
+            xs1 = xs0 + F + 1;
+            ys1 = ys0 + F;
         }
 
         /// 3. Gradient selection
