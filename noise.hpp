@@ -172,9 +172,9 @@ public:
         Vec2<double> dc = {x - x2, y - y2};
         /// Gradient contributions from the vertices
         double radius = 0.5 * 0.5;
-        auto result_a = std::max(0.0, radius - da.length() * da.length()) * da.dot(ga);
-        auto result_b = std::max(0.0, radius - db.length() * db.length()) * db.dot(gb);
-        auto result_c = std::max(0.0, radius - dc.length() * dc.length()) * dc.dot(gc);
+        auto result_a = std::pow(std::max(0.0, radius - da.length() * da.length()), 1) * da.dot(ga);
+        auto result_b = std::pow(std::max(0.0, radius - db.length() * db.length()), 1) * db.dot(gb);
+        auto result_c = std::pow(std::max(0.0, radius - dc.length() * dc.length()), 1) * dc.dot(gc);
 
         return 70*(result_a + result_b + result_c);
     }
