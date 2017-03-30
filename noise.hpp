@@ -417,16 +417,6 @@ public:
     }
 };
 
-/// OpenSimplex noise implementation
-class OpenSimplex : public Noise {
-    double get_value(double x, double y)  const {
-        return 0.0;
-    }
-
-    // TODO: Implement
-    double get_value(double x, double y, double z) const { exit(0); return 0.0; }
-};
-
 /// Standard Perlin noise implementation
 class Perlin : public Noise {
     // Implementation details for generation of gradients
