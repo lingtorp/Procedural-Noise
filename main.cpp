@@ -1,7 +1,6 @@
 #include <iostream>
 #include "noise.hpp"
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
 
 const int WIDTH = 250;
 const int HEIGHT = 250;
