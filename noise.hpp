@@ -430,7 +430,7 @@ class Perlin : public Noise {
     std::vector<Vec3<double>> grads3;
 
     /// Permutation table for indices to the gradients
-    std::vector<int> perms;
+    std::vector<u_char> perms;
 
 public:
     Perlin(uint64_t seed): engine(seed), grads(256), grads3(256), distr(-1.0, 1.0), perms(256) {
