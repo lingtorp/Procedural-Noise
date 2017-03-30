@@ -95,10 +95,10 @@ class Simplex : public Noise {
     std::vector<Vec3<double>> grads3;
 
     /// Permutation table for indices to the gradients
-    std::vector<int> perms;
-
+    std::vector<u_char> perms;
 public:
-    Simplex(uint64_t seed): engine(seed), grads2(256), grads3(256), distr(-1.0, 1.0), perms(256) {
+    /// Perms size is double that of grad to avoid index wrapping
+    Simplex(uint64_t seed): engine(seed), grads2(256), grads3(256), distr(-1.0, 1.0), perms(512) {
         /// Fill the gradients list with random normalized vectors
         for (int i = 0; i < grads2.size(); i++) {
             double x = distr(engine);
@@ -118,6 +118,136 @@ public:
         std::shuffle(perms.begin(), perms.end(), engine);
     }
 
+    double grad(int hash, float x, float y) const {
+        int h = hash & 0b0111;    // Convert low 3 bits of hash code
+        float u = h < 4 ? x : y;  // into 8 simple gradient directions,
+        float v = h < 4 ? y : x;  // and compute the dot product with (x,y).
+        return ((h & 1) ? -u : u) + ((h & 2) ? -2.0f*v : 2.0f*v);
+    }
+
+    double get_value(double x, double y) const {
+        #define F2 0.366025403f // F2 = 0.5*(sqrt(3.0)-1.0)
+        #define G2 0.211324865f // G2 = (3.0-Math.sqrt(3.0))/6.0
+
+        float n0, n1, n2; // Noise contributions from the three corners
+
+        // Skew the input space to determine which simplex cell we're in
+        float s = (x + y) * F2; // Hairy factor for 2D
+        float xs = x + s;
+        float ys = y + s;
+        int i = (int) std::floor(xs);
+        int j = (int) std::floor(ys);
+
+        float t = (float) (i + j) * G2;
+        float X0 = i - t;  // Unskew the cell origin back to (x,y) space
+        float Y0 = j - t;
+        float x0 = x - X0; // The x,y distances from the cell origin
+        float y0 = y - Y0;
+
+        // For the 2D case, the simplex shape is an equilateral triangle.
+        // Determine which simplex we are in.
+        int i1, j1; // Offsets for second vertex of simplex in (i,j) coords
+        if (x0 > y0) { i1 = 1; j1 = 0; } // lower triangle, XY order: (0,0)->(1,0)->(1,1)
+        else { i1 = 0; j1 = 1; }         // upper triangle, YX order: (0,0)->(0,1)->(1,1)
+
+        // A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
+        // a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
+        // c = (3-sqrt(3))/6
+
+        float x1 = x0 - i1 + G2; // Offsets for second vertex in (x,y) unskewed coords
+        float y1 = y0 - j1 + G2;
+        float x2 = x0 - 1.0f + 2.0f * G2; // Offsets for last corner in (x,y) unskewed coords
+        float y2 = y0 - 1.0f + 2.0f * G2;
+
+        // Wrap the integer indices at 256, to avoid indexing perm[] out of bounds
+        int ii = i % perms.size();
+        int jj = j % perms.size();
+
+        // Calculate the contribution from the three corners
+        float t0 = 0.5f - x0*x0 - y0*y0;
+        if (t0 < 0.0f) n0 = 0.0f;
+        else {
+            t0 *= t0;
+            n0 = t0 * t0 * grad(perms[ii + perms[jj]], x0, y0);
+        }
+
+        float t1 = 0.5f - x1*x1 - y1*y1;
+        if (t1 < 0.0f) n1 = 0.0f;
+        else {
+            t1 *= t1;
+            n1 = t1 * t1 * grad(perms[ii + i1 + perms[jj + j1]], x1, y1);
+        }
+
+        float t2 = 0.5f - x2*x2 - y2*y2;
+        if (t2 < 0.0f) n2 = 0.0f;
+        else {
+            t2 *= t2;
+            n2 = t2 * t2 * grad(perms[ii + 1 + perms[jj + 1]], x2, y2);
+        }
+
+        // Add contributions from each corner to get the final noise value.
+        // The result is scaled to return values in the interval [-1,1].
+        return 20.0f * (n0 + n1 + n2); // TODO: The scale factor is preliminary!
+    }
+
+    // TODO: Implement
+    double get_value(double x, double y, double z) const { exit(0); return 0.0; }
+};
+
+class ImprovedPerlin : public Noise {
+    // Implementation details for generation of gradients
+    std::mt19937 engine;
+    std::uniform_real_distribution<> distr;
+
+    /// 2D Normalized gradients table
+    std::vector<Vec2<double>> grads2;
+
+    /// 3D Normalized gradients table
+    std::vector<Vec3<double>> grads3;
+
+    /// Permutation table for indices to the gradients
+    std::vector<u_char> perms;
+
+    std::vector<u_char> bit_patterns;
+public:
+    /// Perms size is double that of grad to avoid index wrapping
+    ImprovedPerlin(uint64_t seed): engine(seed), grads2(256), grads3(256), distr(-1.0, 1.0), perms(512),
+                                   bit_patterns{0x15, 0x38, 0x32, 0x2C, 0x0D, 0x13, 0x07, 0x2A} {
+        /// Fill the gradients list with random normalized vectors
+        for (int i = 0; i < grads2.size(); i++) {
+            double x = distr(engine);
+            double y = distr(engine);
+            double z = distr(engine);
+            auto grad_vector = Vec2<double>{x, y}.normalize();
+            grads2[i] = grad_vector;
+            auto grad3_vector = Vec3<double>{x, y, z}.normalize();
+            grads3[i] = grad3_vector;
+        }
+
+        /// Fill gradient lookup array with random indices to the gradients list
+        /// Fill with indices from 0 to perms.size()
+        std::iota(perms.begin(), perms.end(), 0);
+
+        /// Randomize the order of the indices
+        std::shuffle(perms.begin(), perms.end(), engine);
+    }
+
+    u_char b(int i, int j, int k, int B) {
+        auto bit_index = 4*(i & (0b1 << B)) + 2*(j & (0b1 << B)) + (k & (0b1 << B));
+        return bit_patterns[bit_index];
+    }
+
+    Vec3<float> grad(int i, int j, int k) {
+        int bit_sum = b(i,j,k,0) + b(j,k,i,1) + b(k,i,j,2) + b(i,j,k,3) + b(j,k,i,4) + b(k,i,j,5) + b(i,j,k,6) + b(j,k,i,7);
+        auto u = (bit_sum & 0b001) ? 1.0f : 0.0f;
+        auto v = (bit_sum & 0b010) ? 1.0f : 0.0f;
+        auto w = (bit_sum & 0b100) ? 1.0f : 0.0f;
+        u = (bit_sum & 0b100000) ? -u : u;
+        v = (bit_sum & 0b010000) ? -v : v;
+        w = (bit_sum & 0b001000) ? -w : w;
+        return {u, v, w};
+    }
+
     double get_value(double x, double y) const {
         x += 0.01; y += 0.01; // Skew coordinates to avoid integer lines becoming zero
         /// 1. Coordinate skewing
@@ -135,22 +265,31 @@ public:
         /// Simplex vertices
         auto xs1 = 0; // Vertex B coordinates
         auto ys1 = 0;
-        auto xs2 = xs0 + F + F + 1; // Last vertex (C) is always the same
-        auto ys2 = ys0 + F + F + 1;
+
+        // Offset to vertex B from A
+        auto x_step = 0;
+        auto y_step = 0;
         // Checks which simplex the point (xs, ys) is in
         if (xs > ys) { // Upper triangle
             xs1 = xs0 + F;
             ys1 = ys0 + F + 1;
+            y_step = 1;
         } else {       // Lower triangle
             xs1 = xs0 + F + 1;
             ys1 = ys0 + F;
+            x_step = 1;
         }
+
+        auto xs2 = xs0 + F + F + 1; // Last vertex (C) is always the same
+        auto ys2 = ys0 + F + F + 1;
 
         /// 3. Gradient selection
         // Hash the coordinates of the simplex to get the gradient indices for A, B, C
-        auto gai = perms[((xs0     % perms.size()) + perms[ys0     % perms.size()]) % perms.size()];
-        auto gbi = perms[((xs0 + 1 % perms.size()) + perms[ys0     % perms.size()]) % perms.size()];
-        auto gci = perms[((xs0 + 1 % perms.size()) + perms[ys0 + 1 % perms.size()]) % perms.size()];
+        auto ii = xs0 % 255;
+        auto jj = ys0 % 255;
+        auto gai = perms[((ii          % perms.size()) + perms[jj          % perms.size()]) % perms.size()];
+        auto gbi = perms[((ii + x_step % perms.size()) + perms[jj + y_step % perms.size()]) % perms.size()];
+        auto gci = perms[((ii + 1      % perms.size()) + perms[jj + 1      % perms.size()]) % perms.size()];
 
         auto ga = grads2[gai];
         auto gb = grads2[gbi];
@@ -167,16 +306,16 @@ public:
         /// Displacement vectors for point (x, y)
         auto x0 = std::floor(x);
         auto y0 = std::floor(y);
-        Vec2<double> da = {x - x0, y - y0};
-        Vec2<double> db = {x - x1, y - y1};
-        Vec2<double> dc = {x - x2, y - y2};
+        Vec2<double> da = {x0 - x, y0 - y};
+        Vec2<double> db = {x1 - x, y1 - y};
+        Vec2<double> dc = {x2 - x, y2 - y};
         /// Gradient contributions from the vertices
-        double radius = 0.5 * 0.5;
-        auto result_a = std::pow(std::max(0.0, radius - da.length() * da.length()), 1) * da.dot(ga);
-        auto result_b = std::pow(std::max(0.0, radius - db.length() * db.length()), 1) * db.dot(gb);
-        auto result_c = std::pow(std::max(0.0, radius - dc.length() * dc.length()), 1) * dc.dot(gc);
+        double radius = 0.6;
+        auto result_a = std::pow(std::max(0.0, radius - da.dot(da)), 1) * da.dot(ga);
+        auto result_b = std::pow(std::max(0.0, radius - db.dot(db)), 1) * db.dot(gb);
+        auto result_c = std::pow(std::max(0.0, radius - dc.dot(dc)), 1) * dc.dot(gc);
 
-        return 70*(result_a + result_b + result_c);
+        return 1*(result_a + result_b + result_c);
     }
 
     // TODO: Implement
