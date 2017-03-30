@@ -498,7 +498,6 @@ public:
 
     double get_value(double X, double Y, double Z) const {
         /// Compress the coordinates inside the chunk; double part + int part = point coordinate
-        X += 0.01; Y += 0.01; Z += 0.01; // Scale coordinates to avoid integer lines becoming zero
         /// Grid points from the chunk in the world
         int X0 = (int) std::floor(X);
         int Y0 = (int) std::floor(Y);
