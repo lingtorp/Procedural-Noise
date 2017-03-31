@@ -117,6 +117,22 @@ public:
         return total / max_value;
     }
 
+    double domain_wrapping(double x, double y, double z, double scale) const {
+        Vec3<double> p{x, y, z};
+        Vec3<double> offset{50.2, 10.3, 10.5};
+
+        Vec3<double> q{fbm(p + offset, scale), fbm(p + offset, scale), fbm(p + offset, scale)};
+        Vec3<double> qq{100.0*q.x, 100.0*q.y, 100.0*q.z};
+
+        /// Adjusting the scales in r makes a cool ripple effect through the noise
+        Vec3<double> r{fbm(p + qq + Vec3<double>{1.7, 9.2, 5.1}, scale * 1),
+                       fbm(p + qq + Vec3<double>{8.3, 2.8, 2.5}, scale * 1),
+                       fbm(p + qq + Vec3<double>{1.2, 6.9, 8.4}, scale * 1)};
+        Vec3<double> rr{100.0*r.x, 100.0*r.y, 100.0*r.z};
+
+        return fbm(p + rr, scale);
+    }
+
 protected:
     static inline float smoothstep(float t) { return t * t * (3 - 2 * t); }
     static inline double fade(double t) { return t * t * t * (t * (t * 6 - 15) + 10); }
