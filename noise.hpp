@@ -19,7 +19,7 @@ public:
     virtual double get_value(double x, double y, double z) const = 0;
 
     /// 3D turbulence noise which simulates fBm
-    double turbulence(double x, double y, double zoom_factor) {
+    double turbulence(double x, double y, double zoom_factor) const {
         double value = 0;
         double zoom = zoom_factor;
         while (zoom >= 1.0) {
