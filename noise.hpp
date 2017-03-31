@@ -30,7 +30,7 @@ public:
     }
 
     /// 3D turbulence noise which simulates fBm
-    double turbulence(double x, double y, double z, double zoom_factor) {
+    double turbulence(double x, double y, double z, double zoom_factor) const {
         double value = 0;
         double zoom = zoom_factor;
         while (zoom >= 1.0) {
@@ -80,7 +80,7 @@ public:
             frequency *= 2;
         }
 
-        // Dividing by the max amplitude sum bring it into [-1, 1] range
+        // Dividing by the max amplitude sum brings it into [-1, 1] range
         return total / max_value;
     }
 
@@ -97,7 +97,7 @@ public:
             frequency *= 2;
         }
 
-        // Dividing by the max amplitude sum bring it into [-1, 1] range
+        // Dividing by the max amplitude sum brings it into [-1, 1] range
         return total / max_value;
     }
 
