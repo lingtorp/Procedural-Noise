@@ -101,6 +101,22 @@ public:
         return total / max_value;
     }
 
+    /// 3D fractional Brownian motion noise in which each octave gets its own amplitude
+    double octaves(double x, double y, double z, std::vector<float> &amplitudes) const {
+        double total = 0.0;
+        double max_value = 0.0;
+        double frequency = 1.0;
+        for (size_t i = 0; i < amplitudes.size(); ++i) {
+            total += (1.0f - std::abs(get_value(x / frequency, y / frequency, z / frequency) * amplitudes[i]));
+            max_value += amplitudes[i];
+
+            frequency *= 2;
+        }
+
+        // Dividing by the max amplitude sum brings it into [-1, 1] range
+        return total / max_value;
+    }
+
 protected:
     static inline float smoothstep(float t) { return t * t * (3 - 2 * t); }
     static inline double fade(double t) { return t * t * t * (t * (t * 6 - 15) + 10); }
