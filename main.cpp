@@ -2,8 +2,8 @@
 #include "noise.hpp"
 #include <SDL2/SDL.h>
 
-const int WIDTH = 250;
-const int HEIGHT = 250;
+const int WIDTH = 500;
+const int HEIGHT = 500;
 const int ZOOM = 1;
 const int DIVISOR = 64; // Zooms into details of the noise
 const int SEED = 1;
