@@ -90,6 +90,10 @@ struct Vec3 {
         return Vec3<T>{x + rhs.x, y + rhs.y, z + rhs.z};
     }
 
+    inline Vec3<T> operator*(const Vec3 &rhs) const {
+        return Vec3<T>{x * rhs.x, y * rhs.y, z * rhs.z};
+    }
+
     inline Vec3<T> operator*(const T s) const {
         return Vec3<T>{x * s, y * s, z * s};
     }
