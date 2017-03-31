@@ -40,6 +40,33 @@ public:
         return value / zoom_factor;
     }
 
+    /// 3D turbulence noise which simulates fBm
+    double fbm(Vec3<double> in, double zoom_factor) const {
+        return turbulence(in.x, in.y, in.z, zoom_factor);
+    }
+
+    /// 3D Billowy turbulence
+    double turbulence_billowy(double x, double y, double z, double zoom_factor) const {
+        double value = 0;
+        double zoom = zoom_factor;
+        while (zoom >= 1.0) {
+            value += std::abs(get_value(x / zoom, y / zoom, z / zoom) * zoom);
+            zoom /= 2;
+        }
+        return value / zoom_factor;
+    }
+
+    /// 3D Ridged turbulence
+    double turbulence_ridged(double x, double y, double z, double zoom_factor) const {
+        double value = 0;
+        double zoom = zoom_factor;
+        while (zoom >= 1.0) {
+            value += (1.0f - std::abs(get_value(x / zoom, y / zoom, z / zoom) * zoom));
+            zoom /= 2;
+        }
+        return value / zoom_factor;
+    }
+
     /// 2D fractional Brownian motion noise of the underlying noise algorithm
     double octaves(double x, double y, int octaves, double persistance = 1.0, double amplitude = 1.0) const {
         double total = 0.0;
