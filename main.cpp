@@ -12,11 +12,14 @@ const double TIME_STEP = 0.5;
 void draw(double time, SDL_Renderer *renderer, Noise &noise_gen) {
     for (size_t x = 0; x < WIDTH; x += ZOOM) {
         for (size_t y = 0; y < HEIGHT; y += ZOOM) {
-            std::vector<float> amplitudes = {0.4, 0.7, 0.4, 0.6};
+            // std::vector<float> amplitudes = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6};
+            // auto noise = noise_gen.octaves(x, y, time, amplitudes);
             // auto noise = std::abs(noise_gen.octaves(x, y, time, DIVISOR, 0.9));
             // auto noise = noise_gen.get_value(x / DIVISOR, y / DIVISOR);
             // auto noise = noise_gen.get_value(x / DIVISOR, y / DIVISOR, time / DIVISOR);
-            auto noise = (1.0f - std::abs(noise_gen.turbulence(x, y, time, DIVISOR)));
+            // auto noise = noise_gen.turbulence_ridged(x, y, time, DIVISOR);
+            auto noise = noise_gen.domain_wrapping(x, y, time, DIVISOR);
+            // auto noise = noise_gen.turbulence_ridged(x, y, time, DIVISOR);
             // auto noise = noise_gen.get_value(x, y);
             auto color = 125.5f + noise * 125.5f;
             // SDL_Log("Noise: %f, Color: %f \n", noise, color);
