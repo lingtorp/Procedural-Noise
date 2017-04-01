@@ -62,9 +62,13 @@ struct Vec3 {
     Vec3(T x, T y, T z): x(x), y(y), z(z) {};
     Vec3(): x(0), y(0), z(0) {};
 
+    /// Vec3 of zeroes
     inline static Vec3 ZERO() { return Vec3(0.0, 0.0, 0.0); }
+
+    /// Length of the vector
     inline double length() const { return std::sqrt(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)); }
 
+    /// Returns a copy of this vector normalized
     inline Vec3<T> normalize() const {
         double length = this->length();
         Vec3 result;
@@ -83,6 +87,7 @@ struct Vec3 {
         return result;
     }
 
+    /// Dot product
     inline T dot(Vec3<T> u) const { return x * u.x + y * u.y + z * u.z; }
 
     /// Operators
@@ -129,6 +134,7 @@ struct Vec2 {
         return x == rhs.x && y == rhs.y;
     }
 
+    /// Returns a copy of this vector normalized
     inline Vec2<T> normalize() const {
         double length = this->length();
         Vec2<T> result;
@@ -137,6 +143,7 @@ struct Vec2 {
         return result;
     }
 
+    /// Length of the vector
     inline double length() const { return std::sqrt(std::pow(x, 2) + std::pow(y, 2)); }
 };
 
