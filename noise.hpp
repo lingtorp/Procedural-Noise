@@ -521,9 +521,6 @@ public:
         int X1 = (int) std::ceil(X);
         int Y1 = (int) std::ceil(Y);
 
-        double yf = Y - Y0; // Float offset inside the square [0, 1]
-        double xf = X - X0; // Float offset inside the square [0, 1]
-
         /// Gradients using hashed indices from lookup list
         Vec2<double> x0y0 = grads[perms[(X0 + perms[Y0 % perms.size()]) % perms.size()]];
         Vec2<double> x1y0 = grads[perms[(X1 + perms[Y0 % perms.size()]) % perms.size()]];
@@ -543,6 +540,9 @@ public:
         double d11 = x1y1.dot(v11);
 
         /// Interpolate dot product values at sample point using polynomial interpolation 6x^5 - 15x^4 + 10x^3
+        double yf = Y - Y0; // Float offset inside the square [0, 1]
+        double xf = X - X0; // Float offset inside the square [0, 1]
+
         auto wx = fade(xf);
         auto wy = fade(yf);
 
