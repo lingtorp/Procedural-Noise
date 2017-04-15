@@ -102,14 +102,13 @@ public:
     }
 
     /// 3D fractional Brownian motion noise in which each octave gets its own amplitude
-    double octaves(double x, double y, double z, std::vector<float> &amplitudes) const {
+    double octaves(double x, double y, double z, const std::vector<float> &amplitudes) const {
         double total = 0.0;
         double max_value = 0.0;
         double frequency = 1.0;
         for (size_t i = 0; i < amplitudes.size(); ++i) {
-            total += (1.0f - std::abs(get_value(x / frequency, y / frequency, z / frequency) * amplitudes[i]));
+            total += get_value(x / frequency, y / frequency, z / frequency) * amplitudes[i];
             max_value += amplitudes[i];
-
             frequency *= 2;
         }
 
