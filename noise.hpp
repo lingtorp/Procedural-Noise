@@ -242,13 +242,19 @@ public:
     double get_value(double x, double y, double z) const { exit(EXIT_FAILURE); }
 };
 
-class ImprovedPerlin2 : public Noise {
+/**
+ * Simplex noise implementation using the 'Improved Noise' patent algorithm
+ * - Gradient table instead of on-the-fly gradient creation
+ * - Permutation table instead of bit manipulation
+ * - Using modulo hashing to select the gradients
+ */
+class Simplex_Tables : public Noise {
     // Implementation details for generation of gradients
     std::mt19937 engine;
     std::uniform_real_distribution<> distr;
 
     /// 2D Normalized gradients table
-    std::vector<Vec2<float>> grads2;
+    std::vector<Vec2<double>> grads2;
 
     /// 3D Normalized gradients table
     std::vector<Vec3<double>> grads3;
@@ -257,13 +263,13 @@ class ImprovedPerlin2 : public Noise {
     std::vector<u_char> perms;
 public:
     /// Perms size is double that of grad to avoid index wrapping
-    ImprovedPerlin2(uint64_t seed): engine(seed), grads2(256), grads3(256), distr(-1.0, 1.0), perms(512) {
+    Simplex_Tables(uint64_t seed): engine(seed), grads2(256), grads3(256), distr(-1.0, 1.0), perms(512) {
         /// Fill the gradients list with random normalized vectors
         for (int i = 0; i < grads2.size(); i++) {
             double x = distr(engine);
             double y = distr(engine);
             double z = distr(engine);
-            auto grad_vector = Vec2<float>{(float) x, (float) y}.normalize();
+            auto grad_vector = Vec2<double>{x, y}.normalize();
             grads2[i] = grad_vector;
             auto grad3_vector = Vec3<double>{x, y, z}.normalize();
             grads3[i] = grad3_vector;
@@ -278,29 +284,28 @@ public:
     }
 
     double get_value(double x, double y) const override {
-        const float F = (std::sqrtf(1.0f + 2.0f) - 1.0f) / 2;
-        float s = (x + y) * F;
-        float xs = x + s;
-        float ys = y + s;
-        int i = (int) std::floorf(xs);
-        int j = (int) std::floorf(ys);
+        const double F = (std::sqrt(1.0 + 2.0) - 1.0) / 2;
+        double s = (x + y) * F;
+        double xs = x + s;
+        double ys = y + s;
+        int i = (int) std::floor(xs);
+        int j = (int) std::floor(ys);
 
-        const float G = (3.0f - std::sqrtf(2.0f + 1.0f)) / 6.0f;
-        auto t = (i + j) * G;
-        Vec2<float> cell_origin{i - t, j - t};
-        Vec2<float> vertex_a = Vec2<float>{(float)x, (float)y} - cell_origin;
+        const double G = (3.0 - std::sqrt(2.0 + 1.0)) / 6.0;
+        double t = (i + j) * G;
+        Vec2<double> cell_origin{i - t, j - t};
+        Vec2<double> vertex_a = Vec2<double>{x, y} - cell_origin;
 
         auto x_step = 0;
         auto y_step = 0;
-        if (vertex_a.x > vertex_a.y) {
-            // Lower triangle
+        if (vertex_a.x > vertex_a.y) { // Lower triangle
             x_step = 1;
         } else {
             y_step = 1;
         }
 
-        Vec2<float> vertex_b{vertex_a.x - x_step + G, vertex_a.y - y_step + G};
-        Vec2<float> vertex_c{vertex_a.x - 1.0f + 2.0f*G, vertex_a.y - 1.0f + 2.0f*G};
+        Vec2<double> vertex_b{vertex_a.x - x_step + G, vertex_a.y - y_step + G};
+        Vec2<double> vertex_c{vertex_a.x - 1.0 + 2.0 * G, vertex_a.y - 1.0 + 2.0 * G};
 
         auto ii = i % 255;
         auto jj = j % 255;
@@ -309,32 +314,31 @@ public:
         auto grad_c = grads2[perms[ii + 1 + perms[jj + 1]]];
 
         auto t0 = 0.5 - vertex_a.x*vertex_a.x - vertex_a.y*vertex_a.y;
-        auto result_a = 0.0f;
+        double result_a = 0.0;
         if (t0 > 0) {
             t0 *= t0;
             result_a = t0 * t0 * grad_a.dot(vertex_a);
         }
 
         auto t1 = 0.5 - vertex_b.x*vertex_b.x - vertex_b.y*vertex_b.y;
-        auto result_b = 0.0f;
+        double result_b = 0.0;
         if (t1 > 0) {
             t1 *= t1;
             result_b = t1 * t1 * grad_b.dot(vertex_b);
         }
 
         auto t2 = 0.5 - vertex_c.x*vertex_c.x - vertex_c.y*vertex_c.y;
-        auto result_c = 0.0f;
+        double result_c = 0.0;
         if (t2 > 0) {
             t2 *= t2;
             result_c = t2 * t2 * grad_c.dot(vertex_c);
         }
 
-        return 70.0f * (result_a + result_b + result_c);
+        return 58.0 * (result_a + result_b + result_c);
     }
 
-    double get_value(double x, double y, double z) const override {
-        return 0;
-    }
+    // TODO: Implement
+    double get_value(double x, double y, double z) const override { exit(EXIT_FAILURE); }
 };
 
 /// Standard Perlin noise implementation
