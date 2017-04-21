@@ -430,10 +430,6 @@ public:
         int Z0 = (int) std::floor(Z);
         int Z1 = (int) std::ceil(Z);
 
-        double yf = Y - Y0; // Float offset inside the cube [0, 1]
-        double xf = X - X0; // Float offset inside the cube [0, 1]
-        double zf = Z - Z0; // Float offset inside the cube [0, 1]
-
         /// Gradients using hashed indices from lookup list
         Vec3<double> x0y0z0 = grads3[perms[(X0 + perms[(Y0 + perms[Z0 % perms.size()]) % perms.size()]) % perms.size()]];
         Vec3<double> x1y0z0 = grads3[perms[(X1 + perms[(Y0 + perms[Z0 % perms.size()]) % perms.size()]) % perms.size()]];
@@ -468,6 +464,10 @@ public:
         double d111 = x1y1z1.dot(v111);
 
         /// Interpolate dot product values at sample point using polynomial interpolation 6x^5 - 15x^4 + 10x^3
+        double yf = Y - Y0; // Float offset inside the cube [0, 1]
+        double xf = X - X0; // Float offset inside the cube [0, 1]
+        double zf = Z - Z0; // Float offset inside the cube [0, 1]
+
         auto wx = fade(xf);
         auto wy = fade(yf);
         auto wz = fade(zf);
