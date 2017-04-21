@@ -151,34 +151,16 @@ class Simplex_Patent : public Noise {
     /// Bit patterns for the creation of the gradients
     std::vector<u_char> bit_patterns;
 public:
-    /// Perms size is double that of grad to avoid index wrapping
-    ImprovedPerlin(uint64_t seed): engine(seed), grads2(256), grads3(256), distr(-1.0, 1.0), perms(512),
-                                   bit_patterns{0x15, 0x38, 0x32, 0x2C, 0x0D, 0x13, 0x07, 0x2A} {
-        /// Fill the gradients list with random normalized vectors
-        for (int i = 0; i < grads2.size(); i++) {
-            double x = distr(engine);
-            double y = distr(engine);
-            double z = distr(engine);
-            auto grad_vector = Vec2<double>{x, y}.normalize();
-            grads2[i] = grad_vector;
-            auto grad3_vector = Vec3<double>{x, y, z}.normalize();
-            grads3[i] = grad3_vector;
-        }
+    Simplex_Patent(uint64_t seed): bit_patterns{0x15, 0x38, 0x32, 0x2C, 0x0D, 0x13, 0x07, 0x2A} { }
 
-        /// Fill gradient lookup array with random indices to the gradients list
-        /// Fill with indices from 0 to perms.size()
-        std::iota(perms.begin(), perms.end(), 0);
-
-        /// Randomize the order of the indices
-        std::shuffle(perms.begin(), perms.end(), engine);
-    }
-
-    u_char b(int i, int j, int k, int B) {
+    /// Given a coordinate (i, j, k) selects the B'th bit
+    u_char b(int i, int j, int k, int B) const {
         auto bit_index = 4*(i & (0b1 << B)) + 2*(j & (0b1 << B)) + (k & (0b1 << B));
         return bit_patterns[bit_index];
     }
 
-    Vec3<float> grad(int i, int j, int k) {
+    /// Given an coordinate (i, j, k) creates a gradient vector
+    Vec3<double> grad(int i, int j, int k) const {
         int bit_sum = b(i,j,k,0) + b(j,k,i,1) + b(k,i,j,2) + b(i,j,k,3) + b(j,k,i,4) + b(k,i,j,5) + b(i,j,k,6) + b(j,k,i,7);
         auto u = (bit_sum & 0b001) ? 1.0f : 0.0f;
         auto v = (bit_sum & 0b010) ? 1.0f : 0.0f;
@@ -189,78 +171,75 @@ public:
         return {u, v, w};
     }
 
-    double get_value(double x, double y) const {
-        x += 0.01; y += 0.01; // Skew coordinates to avoid integer lines becoming zero
-        /// 1. Coordinate skewing
-        /// Skew the input (x, y) to (x', y')
-        const auto F = (std::sqrt(2 + 1) - 1) / 2; // Scale factor: sqrt(n + 1) - 1 / n
-        auto s = (x + y) * F; // s for skewed
-        auto xs = x + s;
-        auto ys = y + s;
+    /// Given a coordinate (i, j) selects the B'th bit
+    u_char b(int i, int j, int B) const {
+        auto bit_index = 2*(i & (0b1 << B)) + (j & (0b1 << B));
+        return bit_patterns[bit_index];
+    }
 
-        /// Determine which of the skewed unit hypercubes (x, y) lies within
-        auto xs0 = (int) std::floor(xs); // Vertex A coordinates
-        auto ys0 = (int) std::floor(ys);
+    Vec2<double> grad(int i, int j) const {
+        int bit_sum = b(i,j,0) + b(j,i,1) + b(i,j,2) + b(j,i,3);
+        auto u = (bit_sum & 0b01) ? 1.0f : 0.0f;
+        auto v = (bit_sum & 0b10) ? 1.0f : 0.0f;
+        u = (bit_sum & 0b1000) ? -u : u;
+        v = (bit_sum & 0b0100) ? -v : v;
+        return {u, v};
+    }
 
-        /// 2. Simplical subdivision - finding the simplex consisting of vertices (A, B, C)
-        /// Simplex vertices
-        auto xs1 = 0; // Vertex B coordinates
-        auto ys1 = 0;
+    double get_value(double x, double y) const override {
+        const double F = (std::sqrt(1.0 + 2.0) - 1.0) / 2;
+        double s = (x + y) * F;
+        double xs = x + s;
+        double ys = y + s;
+        int i = (int) std::floor(xs);
+        int j = (int) std::floor(ys);
 
-        // Offset to vertex B from A
+        const double G = (3.0 - std::sqrt(2.0 + 1.0)) / 6.0;
+        double t = (i + j) * G;
+        Vec2<double> cell_origin{i - t, j - t};
+        Vec2<double> vertex_a = Vec2<double>{x, y} - cell_origin;
+
         auto x_step = 0;
         auto y_step = 0;
-        // Checks which simplex the point (xs, ys) is in
-        if (xs > ys) { // Upper triangle
-            xs1 = xs0 + F;
-            ys1 = ys0 + F + 1;
-            y_step = 1;
-        } else {       // Lower triangle
-            xs1 = xs0 + F + 1;
-            ys1 = ys0 + F;
+        if (vertex_a.x > vertex_a.y) { // Lower triangle
             x_step = 1;
+        } else {
+            y_step = 1;
         }
 
-        auto xs2 = xs0 + F + F + 1; // Last vertex (C) is always the same
-        auto ys2 = ys0 + F + F + 1;
+        Vec2<double> vertex_b{vertex_a.x - x_step + G, vertex_a.y - y_step + G};
+        Vec2<double> vertex_c{vertex_a.x - 1.0 + 2.0 * G, vertex_a.y - 1.0 + 2.0 * G};
 
-        /// 3. Gradient selection
-        // Hash the coordinates of the simplex to get the gradient indices for A, B, C
-        auto ii = xs0 % 255;
-        auto jj = ys0 % 255;
-        auto gai = perms[((ii          % perms.size()) + perms[jj          % perms.size()]) % perms.size()];
-        auto gbi = perms[((ii + x_step % perms.size()) + perms[jj + y_step % perms.size()]) % perms.size()];
-        auto gci = perms[((ii + 1      % perms.size()) + perms[jj + 1      % perms.size()]) % perms.size()];
+        auto grad_a = grad(i, j);
+        auto grad_b = grad(i + x_step, j + y_step);
+        auto grad_c = grad(i + 1, j + 1);
 
-        auto ga = grads2[gai];
-        auto gb = grads2[gbi];
-        auto gc = grads2[gci];
+        auto t0 = 0.5 - vertex_a.x * vertex_a.x - vertex_a.y * vertex_a.y;
+        double result_a = 0.0;
+        if (t0 > 0) {
+            t0 *= t0;
+            result_a = t0 * t0 * grad_a.dot(vertex_a);
+        }
 
-        /// 4. Kernel (gradient) summation
-        const auto G = (1 - 1/std::sqrt(2 + 1)) / 2;
-        auto x1 = xs1 + (xs1 + ys1) * G;
-        auto y1 = ys1 + (xs1 + ys1) * G;
+        auto t1 = 0.5 - vertex_b.x * vertex_b.x - vertex_b.y * vertex_b.y;
+        double result_b = 0.0;
+        if (t1 > 0) {
+            t1 *= t1;
+            result_b = t1 * t1 * grad_b.dot(vertex_b);
+        }
 
-        auto x2 = xs2 + (xs2 + ys2) * G;
-        auto y2 = ys2 + (xs2 + ys2) * G;
+        auto t2 = 0.5 - vertex_c.x * vertex_c.x - vertex_c.y * vertex_c.y;
+        double result_c = 0.0;
+        if (t2 > 0) {
+            t2 *= t2;
+            result_c = t2 * t2 * grad_c.dot(vertex_c);
+        }
 
-        /// Displacement vectors for point (x, y)
-        auto x0 = std::floor(x);
-        auto y0 = std::floor(y);
-        Vec2<double> da = {x0 - x, y0 - y};
-        Vec2<double> db = {x1 - x, y1 - y};
-        Vec2<double> dc = {x2 - x, y2 - y};
-        /// Gradient contributions from the vertices
-        double radius = 0.6;
-        auto result_a = std::pow(std::max(0.0, radius - da.dot(da)), 1) * da.dot(ga);
-        auto result_b = std::pow(std::max(0.0, radius - db.dot(db)), 1) * db.dot(gb);
-        auto result_c = std::pow(std::max(0.0, radius - dc.dot(dc)), 1) * dc.dot(gc);
-
-        return 1*(result_a + result_b + result_c);
+        return 45.0 * (result_a + result_b + result_c);
     }
 
     // TODO: Implement
-    double get_value(double x, double y, double z) const { exit(0); return 0.0; }
+    double get_value(double x, double y, double z) const { exit(EXIT_FAILURE); }
 };
 
 class ImprovedPerlin2 : public Noise {
