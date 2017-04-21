@@ -116,6 +116,7 @@ public:
         return total / max_value;
     }
 
+    /// Warps the domain of the noise function creating more natural looking features
     double domain_wrapping(double x, double y, double z, double scale) const {
         Vec3<double> p{x, y, z};
         Vec3<double> offset{50.2, 10.3, 10.5};
