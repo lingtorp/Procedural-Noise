@@ -141,132 +141,14 @@ protected:
     static inline double lerp(double t, double a, double b) { return (1 - t) * a + t * b; }
 };
 
-/// Simplex noise implementation, a.k.a 'improved Perlin' noise
-class Simplex : public Noise {
-    // Implementation details for generation of gradients
-    std::mt19937 engine;
-    std::uniform_real_distribution<> distr;
-
-    /// 2D Normalized gradients table
-    std::vector<Vec2<double>> grads2;
-
-    /// 3D Normalized gradients table
-    std::vector<Vec3<double>> grads3;
-
-    /// Permutation table for indices to the gradients
-    std::vector<u_char> perms;
-public:
-    /// Perms size is double that of grad to avoid index wrapping
-    Simplex(uint64_t seed): engine(seed), grads2(256), grads3(256), distr(-1.0, 1.0), perms(512) {
-        /// Fill the gradients list with random normalized vectors
-        for (int i = 0; i < grads2.size(); i++) {
-            double x = distr(engine);
-            double y = distr(engine);
-            double z = distr(engine);
-            auto grad_vector = Vec2<double>{x, y}.normalize();
-            grads2[i] = grad_vector;
-            auto grad3_vector = Vec3<double>{x, y, z}.normalize();
-            grads3[i] = grad3_vector;
-        }
-
-        /// Fill gradient lookup array with random indices to the gradients list
-        /// Fill with indices from 0 to perms.size()
-        std::iota(perms.begin(), perms.end(), 0);
-
-        /// Randomize the order of the indices
-        std::shuffle(perms.begin(), perms.end(), engine);
-    }
-
-    double grad(int hash, float x, float y) const {
-        int h = hash & 0b0111;    // Convert low 3 bits of hash code
-        float u = h < 4 ? x : y;  // into 8 simple gradient directions,
-        float v = h < 4 ? y : x;  // and compute the dot product with (x,y).
-        return ((h & 1) ? -u : u) + ((h & 2) ? -2.0f*v : 2.0f*v);
-    }
-
-    double get_value(double x, double y) const {
-        #define F2 0.366025403f // F2 = 0.5*(sqrt(3.0)-1.0)
-        #define G2 0.211324865f // G2 = (3.0-Math.sqrt(3.0))/6.0
-
-        float n0, n1, n2; // Noise contributions from the three corners
-
-        // Skew the input space to determine which simplex cell we're in
-        float s = (x + y) * F2; // Hairy factor for 2D
-        float xs = x + s;
-        float ys = y + s;
-        int i = (int) std::floor(xs);
-        int j = (int) std::floor(ys);
-
-        float t = (float) (i + j) * G2;
-        float X0 = i - t;  // Unskew the cell origin back to (x,y) space
-        float Y0 = j - t;
-        float x0 = x - X0; // The x,y distances from the cell origin
-        float y0 = y - Y0;
-
-        // For the 2D case, the simplex shape is an equilateral triangle.
-        // Determine which simplex we are in.
-        int i1, j1; // Offsets for second vertex of simplex in (i,j) coords
-        if (x0 > y0) { i1 = 1; j1 = 0; } // lower triangle, XY order: (0,0)->(1,0)->(1,1)
-        else { i1 = 0; j1 = 1; }         // upper triangle, YX order: (0,0)->(0,1)->(1,1)
-
-        // A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
-        // a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
-        // c = (3-sqrt(3))/6
-
-        float x1 = x0 - i1 + G2; // Offsets for second vertex in (x,y) unskewed coords
-        float y1 = y0 - j1 + G2;
-        float x2 = x0 - 1.0f + 2.0f * G2; // Offsets for last corner in (x,y) unskewed coords
-        float y2 = y0 - 1.0f + 2.0f * G2;
-
-        // Wrap the integer indices at 256, to avoid indexing perm[] out of bounds
-        int ii = i % perms.size();
-        int jj = j % perms.size();
-
-        // Calculate the contribution from the three corners
-        float t0 = 0.5f - x0*x0 - y0*y0;
-        if (t0 < 0.0f) n0 = 0.0f;
-        else {
-            t0 *= t0;
-            n0 = t0 * t0 * grad(perms[ii + perms[jj]], x0, y0);
-        }
-
-        float t1 = 0.5f - x1*x1 - y1*y1;
-        if (t1 < 0.0f) n1 = 0.0f;
-        else {
-            t1 *= t1;
-            n1 = t1 * t1 * grad(perms[ii + i1 + perms[jj + j1]], x1, y1);
-        }
-
-        float t2 = 0.5f - x2*x2 - y2*y2;
-        if (t2 < 0.0f) n2 = 0.0f;
-        else {
-            t2 *= t2;
-            n2 = t2 * t2 * grad(perms[ii + 1 + perms[jj + 1]], x2, y2);
-        }
-
-        // Add contributions from each corner to get the final noise value.
-        // The result is scaled to return values in the interval [-1,1].
-        return 20.0f * (n0 + n1 + n2); // TODO: The scale factor is preliminary!
-    }
-
-    // TODO: Implement
-    double get_value(double x, double y, double z) const { exit(0); return 0.0; }
-};
-
-class ImprovedPerlin : public Noise {
-    // Implementation details for generation of gradients
-    std::mt19937 engine;
-    std::uniform_real_distribution<> distr;
-
-    /// 2D Normalized gradients table
-    std::vector<Vec2<double>> grads2;
-
-    /// 3D Normalized gradients table
-    std::vector<Vec3<double>> grads3;
-
-    /// Permutation table for indices to the gradients
-    std::vector<u_char> perms;
-
+/**
+ * Simplex noise/Improved Perlin noise from the 'Improved noise' patent
+ * - Gradient creation on-the-fly using bit manipulation
+ * - Gradient selection uses bit manipulation (from the above point)
+ */
+class Simplex_Patent : public Noise {
+    // Implementation details
+    /// Bit patterns for the creation of the gradients
     std::vector<u_char> bit_patterns;
 public:
     /// Perms size is double that of grad to avoid index wrapping
