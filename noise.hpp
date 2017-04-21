@@ -102,7 +102,7 @@ public:
     }
 
     /// 3D fractional Brownian motion noise in which each octave gets its own amplitude
-    double octaves(double x, double y, double z, const std::vector<float> &amplitudes) const {
+    double octaves(double x, double y, double z, const std::vector<double> &amplitudes) const {
         double total = 0.0;
         double max_value = 0.0;
         double frequency = 1.0;
@@ -133,7 +133,7 @@ public:
     }
 
 protected:
-    static inline float smoothstep(float t) { return t * t * (3 - 2 * t); }
+    static inline double smoothstep(double t) { return t * t * (3 - 2 * t); }
     static inline double fade(double t) { return t * t * t * (t * (t * 6 - 15) + 10); }
 
     /// Linear interpolation between a and b with t as a variable
