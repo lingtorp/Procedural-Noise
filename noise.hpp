@@ -187,18 +187,21 @@ public:
     }
 
     double get_value(double x, double y) const override {
-        const double F = (std::sqrt(1.0 + 2.0) - 1.0) / 2;
+        /// Skew
+        const double F = (std::sqrt(2.0 + 1.0) - 1.0) / 2.0;
         double s = (x + y) * F;
         double xs = x + s;
         double ys = y + s;
         int i = (int) std::floor(xs);
         int j = (int) std::floor(ys);
 
+        /// Unskew - find first vertex of the simplex
         const double G = (3.0 - std::sqrt(2.0 + 1.0)) / 6.0;
         double t = (i + j) * G;
         Vec2<double> cell_origin{i - t, j - t};
         Vec2<double> vertex_a = Vec2<double>{x, y} - cell_origin;
 
+        // Figure out which vertex is next
         auto x_step = 0;
         auto y_step = 0;
         if (vertex_a.x > vertex_a.y) { // Lower triangle
@@ -207,6 +210,7 @@ public:
             y_step = 1;
         }
 
+        // A change of one unit step is; x = x' + (x' + y') * G <--> x = 1.0 + (1.0 + 1.0) * G <--> x = 1.0 + 2.0 * G
         Vec2<double> vertex_b{vertex_a.x - x_step + G, vertex_a.y - y_step + G};
         Vec2<double> vertex_c{vertex_a.x - 1.0 + 2.0 * G, vertex_a.y - 1.0 + 2.0 * G};
 
@@ -214,28 +218,27 @@ public:
         auto grad_b = grad(i + x_step, j + y_step);
         auto grad_c = grad(i + 1, j + 1);
 
-        auto t0 = 0.5 - vertex_a.x * vertex_a.x - vertex_a.y * vertex_a.y;
-        double result_a = 0.0;
+        /// Calculate contribution from the vertices in a circle
+        // max(0, r^2 - d^2)^4 * gradient.dot(vertex)
+        const double radius = 0.6 * 0.6; // Radius of the surflet circle (0.6 in patent)
+        double sum = 0.0;
+
+        double t0 = radius - vertex_a.length()*vertex_a.length();
         if (t0 > 0) {
-            t0 *= t0;
-            result_a = t0 * t0 * grad_a.dot(vertex_a);
+            sum += std::pow(t0, 4) * grad_a.dot(vertex_a);
         }
 
-        auto t1 = 0.5 - vertex_b.x * vertex_b.x - vertex_b.y * vertex_b.y;
-        double result_b = 0.0;
+        double t1 = radius - vertex_b.length()*vertex_b.length();
         if (t1 > 0) {
-            t1 *= t1;
-            result_b = t1 * t1 * grad_b.dot(vertex_b);
+            sum += std::pow(t1, 4) * grad_b.dot(vertex_b);
         }
 
-        auto t2 = 0.5 - vertex_c.x * vertex_c.x - vertex_c.y * vertex_c.y;
-        double result_c = 0.0;
+        double t2 = radius - vertex_c.length()*vertex_c.length();
         if (t2 > 0) {
-            t2 *= t2;
-            result_c = t2 * t2 * grad_c.dot(vertex_c);
+            sum += std::pow(t2, 4) * grad_c.dot(vertex_c);
         }
 
-        return 45.0 * (result_a + result_b + result_c);
+        return 220.0 * sum;
     }
 
     // TODO: Implement
@@ -284,14 +287,14 @@ public:
     }
 
     double get_value(double x, double y) const override {
-        const double F = (std::sqrt(1.0 + 2.0) - 1.0) / 2;
+        const double F = (std::sqrt(2.0 + 1.0) - 1.0) / 2.0; // F = (sqrt(n + 1) - 1) / n
         double s = (x + y) * F;
         double xs = x + s;
         double ys = y + s;
         int i = (int) std::floor(xs);
         int j = (int) std::floor(ys);
 
-        const double G = (3.0 - std::sqrt(2.0 + 1.0)) / 6.0;
+        const double G = (3.0 - std::sqrt(2.0 + 1.0)) / 6.0; // G = (1 - (1 / sqrt(n + 1)) / n
         double t = (i + j) * G;
         Vec2<double> cell_origin{i - t, j - t};
         Vec2<double> vertex_a = Vec2<double>{x, y} - cell_origin;
@@ -313,28 +316,27 @@ public:
         auto grad_b = grads2[perms[ii + x_step + perms[jj + y_step]]];
         auto grad_c = grads2[perms[ii + 1 + perms[jj + 1]]];
 
-        auto t0 = 0.5 - vertex_a.x*vertex_a.x - vertex_a.y*vertex_a.y;
-        double result_a = 0.0;
+        /// Calculate contribution from the vertices in a circle
+        // max(0, r^2 - d^2)^4 * gradient.dot(vertex)
+        const double radius = 0.6 * 0.6; // Radius of the surflet circle (0.6 in patent)
+        double sum = 0.0;
+
+        double t0 = radius - vertex_a.length()*vertex_a.length();
         if (t0 > 0) {
-            t0 *= t0;
-            result_a = t0 * t0 * grad_a.dot(vertex_a);
+            sum += std::pow(t0, 4) * grad_a.dot(vertex_a);
         }
 
-        auto t1 = 0.5 - vertex_b.x*vertex_b.x - vertex_b.y*vertex_b.y;
-        double result_b = 0.0;
+        double t1 = radius - vertex_b.length()*vertex_b.length();
         if (t1 > 0) {
-            t1 *= t1;
-            result_b = t1 * t1 * grad_b.dot(vertex_b);
+            sum += std::pow(t1, 4) * grad_b.dot(vertex_b);
         }
 
-        auto t2 = 0.5 - vertex_c.x*vertex_c.x - vertex_c.y*vertex_c.y;
-        double result_c = 0.0;
+        double t2 = radius - vertex_c.length()*vertex_c.length();
         if (t2 > 0) {
-            t2 *= t2;
-            result_c = t2 * t2 * grad_c.dot(vertex_c);
+            sum += std::pow(t2, 4) * grad_c.dot(vertex_c);
         }
 
-        return 58.0 * (result_a + result_b + result_c);
+        return 128.0 * sum;
     }
 
     // TODO: Implement
