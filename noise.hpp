@@ -153,23 +153,7 @@ class Simplex_Patent : public Noise {
 public:
     Simplex_Patent(uint64_t seed): bit_patterns{0x15, 0x38, 0x32, 0x2C, 0x0D, 0x13, 0x07, 0x2A} { }
 
-    /// Given a coordinate (i, j, k) selects the B'th bit
-    u_char b(int i, int j, int k, int B) const {
-        auto bit_index = 4*(i & (0b1 << B)) + 2*(j & (0b1 << B)) + (k & (0b1 << B));
-        return bit_patterns[bit_index];
-    }
-
-    /// Given an coordinate (i, j, k) creates a gradient vector
-    Vec3<double> grad(int i, int j, int k) const {
-        int bit_sum = b(i,j,k,0) + b(j,k,i,1) + b(k,i,j,2) + b(i,j,k,3) + b(j,k,i,4) + b(k,i,j,5) + b(i,j,k,6) + b(j,k,i,7);
-        auto u = (bit_sum & 0b001) ? 1.0f : 0.0f;
-        auto v = (bit_sum & 0b010) ? 1.0f : 0.0f;
-        auto w = (bit_sum & 0b100) ? 1.0f : 0.0f;
-        u = (bit_sum & 0b100000) ? -u : u;
-        v = (bit_sum & 0b010000) ? -v : v;
-        w = (bit_sum & 0b001000) ? -w : w;
-        return {u, v, w};
-    }
+    /***************** Simplex 2D Noise *****************/
 
     /// Given a coordinate (i, j) selects the B'th bit
     u_char b(int i, int j, int B) const {
@@ -241,8 +225,41 @@ public:
         return 220.0 * sum;
     }
 
-    // TODO: Implement
-    double get_value(double x, double y, double z) const { exit(EXIT_FAILURE); }
+    /***************** Simplex 3D Noise *****************/
+
+    /// Hashes a coordinate (i, j, k) then selectes one of the bit patterns
+    u_char b(int i, int j, int k, int B) const {
+        auto bit_index = 4*(i & (0b1 << B)) + 2*(j & (0b1 << B)) + (k & (0b1 << B));
+        return bit_patterns[bit_index];
+    }
+
+    /// Given an coordinate (i, j, k) creates a gradient vector
+    Vec3<double> grad(int i, int j, int k) const {
+        int bit_sum = b(i,j,k,0) + b(j,k,i,1) + b(k,i,j,2) + b(i,j,k,3) + b(j,k,i,4) + b(k,i,j,5) + b(i,j,k,6) + b(j,k,i,7);
+        auto u = (bit_sum & 0b001) ? 1.0f : 0.0f;
+        auto v = (bit_sum & 0b010) ? 1.0f : 0.0f;
+        auto w = (bit_sum & 0b100) ? 1.0f : 0.0f;
+        u = (bit_sum & 0b100000) ? -u : u;
+        v = (bit_sum & 0b010000) ? -v : v;
+        w = (bit_sum & 0b001000) ? -w : w;
+        return {u, v, w};
+    }
+
+    double get_value(double x, double y, double z) const {
+        const double F = (std::sqrt(1.0 + 3.0) - 1.0) / 3;
+        double s = (x + y + z) * F;
+        double xs = x + s;
+        double ys = y + s;
+        double zs = z + s;
+        int i = (int) std::floor(xs);
+        int j = (int) std::floor(ys);
+        int k = (int) std::floor(zs);
+
+        const double G = (1.0 - (1.0 / sqrt(3.0 + 1.0))) / 3.0;
+        double t = (i + j + k) * G;
+        Vec3<double> cell_origin{i - t, j - t, k - t};
+
+    }
 };
 
 /**
