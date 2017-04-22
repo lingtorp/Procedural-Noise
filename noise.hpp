@@ -161,6 +161,7 @@ public:
         return bit_patterns[bit_index];
     }
 
+    /// Given a coordinate (i, j) generates a gradient vector
     Vec2<double> grad(int i, int j) const {
         int bit_sum = b(i,j,0) + b(j,i,1) + b(i,j,2) + b(j,i,3);
         auto u = (bit_sum & 0b01) ? 1.0f : 0.0f;
