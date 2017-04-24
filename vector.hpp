@@ -87,6 +87,9 @@ struct Vec3 {
         return result;
     }
 
+    /// Sum of the components of the vector
+    inline T sum() const { return x + y + z; }
+
     /// Dot product
     inline T dot(Vec3<T> u) const { return x * u.x + y * u.y + z * u.z; }
 
@@ -121,6 +124,9 @@ struct Vec2 {
     T x, y = 0.0f;
     Vec2(T x, T y): x(x), y(y) {};
     Vec2(): x(0), y(0) {};
+
+    /// Sum of the components of the vector
+    inline T sum() const { return x + y; }
 
     /// Dot product
     inline T dot(Vec2<T> u) const { return x * u.x + y * u.y; }
