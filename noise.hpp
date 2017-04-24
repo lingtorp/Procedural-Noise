@@ -6,6 +6,8 @@
 #include "vector.hpp"
 #include <iostream>
 #include <SDL2/SDL_log.h>
+#include <stdint.h>
+#include <array>
 
 /**
  * Base class for noise generating classes
@@ -227,39 +229,150 @@ public:
     }
 
     /***************** Simplex 3D Noise *****************/
-
-    /// Hashes a coordinate (i, j, k) then selectes one of the bit patterns
+    /// Hashes a coordinate (i, j, k) then selects one of the bit patterns
     u_char b(int i, int j, int k, int B) const {
         auto bit_index = 4*(i & (0b1 << B)) + 2*(j & (0b1 << B)) + (k & (0b1 << B));
         return bit_patterns[bit_index];
     }
 
-    /// Given an coordinate (i, j, k) creates a gradient vector
-    Vec3<double> grad(int i, int j, int k) const {
-        int bit_sum = b(i,j,k,0) + b(j,k,i,1) + b(k,i,j,2) + b(i,j,k,3) + b(j,k,i,4) + b(k,i,j,5) + b(i,j,k,6) + b(j,k,i,7);
-        auto u = (bit_sum & 0b001) ? 1.0f : 0.0f;
-        auto v = (bit_sum & 0b010) ? 1.0f : 0.0f;
-        auto w = (bit_sum & 0b100) ? 1.0f : 0.0f;
-        u = (bit_sum & 0b100000) ? -u : u;
-        v = (bit_sum & 0b010000) ? -v : v;
-        w = (bit_sum & 0b001000) ? -w : w;
-        return {u, v, w};
+    /// Returns the n'th bit of num
+    inline bool bit(int num, int n) const {
+        return (bool) ((num >> n) & 0b1);
     }
 
-    double get_value(double x, double y, double z) const {
+    /**
+     * Generates the gradient vector from the vertex and the relative vector.
+     * @param vertex Skewed coordinate of the vertex, used to generate the bit sum.
+     * @param rel Relative vector of (x, y, z) and the vertex in the unskewed coordinate system.
+     * @return Gradient vector
+     */
+    Vec3<double> grad(Vec3<double> vertex, Vec3<double> rel) const {
+        int i = (int) vertex.x;
+        int j = (int) vertex.y;
+        int k = (int) vertex.z;
+        int sum = b(i,j,k,0) + b(j,k,i,1) + b(k,i,j,2) + b(i,j,k,3) + b(j,k,i,4) + b(k,i,j,5) + b(i,j,k,6) + b(j,k,i,7);
+
+        // Magnitude computation based on the three lower bits of the bit sum
+        Vec3<double> pqr = vertex;
+        if (bit(sum, 0) == !bit(sum, 1)) { // xor on bit 0, 1 --> rotation and zeroing
+            if (bit(sum, 0)) { // Rotation
+                pqr.x = vertex.y;
+                pqr.y = vertex.z;
+                pqr.z = vertex.x;
+            } else {
+                pqr.x = vertex.z;
+                pqr.y = vertex.x;
+                pqr.z = vertex.y;
+            }
+
+            if (bit(sum, 2)) { // Zeroing out
+                pqr.y = 0.0;
+            } else {
+                pqr.z = 0.0;
+            }
+        } else if (bit(sum, 0) && bit(sum, 1)) {
+            if (bit(sum, 2)) { // Zeroing out
+                pqr.y = 0.0;
+            } else {
+                pqr.z = 0.0;
+            }
+        }
+
+        // Octant computation based on the three upper bits of the bit sum
+        if (bit(sum, 5) == bit(sum, 3)) { pqr.x = -pqr.x; }
+        if (bit(sum, 5) == bit(sum, 4)) { pqr.y = -pqr.y; }
+        if (bit(sum, 5) == (bit(sum, 4) != bit(sum, 3))) { pqr.z = -pqr.z; }
+
+        return pqr;
+    }
+
+    /// Skews the coordinate to normal Euclidean coordinate system
+    Vec3<double> skew(Vec3<double> v) const {
+        const double F = (std::sqrt(1.0 + 3.0) - 1.0) / 3;
+        double s = (v.x + v.y + v.z) * F;
+        return {v.x + s, v.y + s, v.z + s};
+    }
+
+    /// Unskews the coordinate back to the simpletic coordinate system
+    Vec3<double> unskew(Vec3<double> v) const {
+        const double G = (1.0 - (1.0 / sqrt(3.0 + 1.0))) / 3.0;
+        double s = (v.x + v.y + v.z) * G;
+        return {v.x - s, v.y - s, v.z - s};
+    }
+
+    /**
+     * Computes the spherical kernel contribution from one vertex in a simpletic cell offseted by the vector ijk.
+     * @param uvw Position within the simplex cell (unskewed)
+     * @param ijk First vertex in the simplex cell (unskewed)
+     * @param vertex Vertex in the unit simplex cell (unskewed)
+     * @return Contribution from the vertex
+     */
+    double kernel(Vec3<double> uvw, Vec3<double> ijk, Vec3<double> vertex) const {
+        double sum = 0.0;
+        Vec3<double> rel = uvw - vertex; // Relative simplex cell vertex
+        double t = 0.6 - rel.length()*rel.length(); // 0.6 - x*x - y*y - z*z
+        if (t > 0) {
+            Vec3<double> pqr = grad(ijk + vertex, rel); // Generate gradient vector for vertex
+            t *= t;
+            sum += 8 * t * t * pqr.sum();
+        }
+        return sum;
+    }
+
+    double get_value(double x, double y, double z) const override {
+        /// Skew in the coordinate to the euclidean coordinate system
         const double F = (std::sqrt(1.0 + 3.0) - 1.0) / 3;
         double s = (x + y + z) * F;
         double xs = x + s;
         double ys = y + s;
         double zs = z + s;
-        int i = (int) std::floor(xs);
-        int j = (int) std::floor(ys);
-        int k = (int) std::floor(zs);
+        /// Skewed unit simplex cell
+        Vec3<double> ijks = {std::floor(xs), std::floor(ys), std::floor(zs)}; // First vertex in euclidean coordinates
+        Vec3<double> ijk  = unskew(ijks); // First vertex in the simpletic cell
 
-        const double G = (1.0 - (1.0 / sqrt(3.0 + 1.0))) / 3.0;
-        double t = (i + j + k) * G;
-        Vec3<double> cell_origin{i - t, j - t, k - t};
+        /// Finding the traversal order of vertices of the unit simplex in which (x,y,z) is in.
+        Vec3<double> xyz = {x, y, z};
+        Vec3<double> uvw = xyz - ijk; // Relative unit simplex cell origin
+        std::array<Vec3<double>, 4> vertices; // n + 1 is the number of vertices in a n-dim. simplex
+        vertices[0] = {0.0, 0.0, 0.0};
+        if (uvw.x > uvw.y) {
+            if (uvw.y > uvw.z) {
+                // u, v, w
+                vertices[1] = unskew({1.0, 0.0, 0.0});
+                vertices[2] = unskew({1.0, 1.0, 0.0});
+            } else {
+                if (uvw.x > uvw.z) {
+                    // u, w, v
+                    vertices[1] = unskew({1.0, 0.0, 0.0});
+                    vertices[2] = unskew({1.0, 0.0, 1.0});
+                } else {
+                    // w, u, v
+                    vertices[1] = unskew({0.0, 0.0, 1.0});
+                    vertices[2] = unskew({1.0, 0.0, 1.0});
+                }
+            }
+        } else {
+            if (uvw.y > uvw.z) {
+                if (uvw.z > uvw.x) {
+                    // v, w, u
+                    vertices[1] = unskew({0.0, 1.0, 0.0});
+                    vertices[2] = unskew({0.0, 1.0, 1.0});
+                } else {
+                    // v, u, w
+                    vertices[1] = unskew({0.0, 1.0, 0.0});
+                    vertices[2] = unskew({1.0, 1.0, 0.0});
+                }
+            } else {
+                // w, v, u
+                vertices[1] = unskew({0.0, 0.0, 1.0});
+                vertices[2] = unskew({0.0, 1.0, 1.0});
+            }
+        }
+        vertices[3] = unskew({1.0, 1.0, 1.0});
 
+        /// Spherical kernel summation - contribution from each vertex
+        return kernel(uvw, ijk, vertices[0]) + kernel(uvw, ijk, vertices[1]) +
+               kernel(uvw, ijk, vertices[2]) + kernel(uvw, ijk, vertices[3]);
     }
 };
 
