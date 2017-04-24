@@ -441,7 +441,7 @@ public:
         Vec2<double> vertex_b{vertex_a.x - x_step + G, vertex_a.y - y_step + G};
         Vec2<double> vertex_c{vertex_a.x - 1.0 + 2.0 * G, vertex_a.y - 1.0 + 2.0 * G};
 
-        auto ii = i % 255;
+        auto ii = i % 255; // FIXME: Bit mask instead? Measure speedup
         auto jj = j % 255;
         auto grad_a = grads2[perms[ii + perms[jj]]];
         auto grad_b = grads2[perms[ii + x_step + perms[jj + y_step]]];
@@ -520,6 +520,7 @@ public:
         int Y1 = (int) std::ceil(Y);
 
         /// Gradients using hashed indices from lookup list
+        // FIXME: Implement variation where perms.size() is a power of two in order to do a bit masking instead, measure speedup.
         Vec2<double> x0y0 = grads[perms[(X0 + perms[Y0 % perms.size()]) % perms.size()]];
         Vec2<double> x1y0 = grads[perms[(X1 + perms[Y0 % perms.size()]) % perms.size()]];
         Vec2<double> x0y1 = grads[perms[(X0 + perms[Y1 % perms.size()]) % perms.size()]];
