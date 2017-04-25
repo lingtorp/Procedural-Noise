@@ -321,17 +321,13 @@ public:
 
     double get_value(double x, double y, double z) const override {
         /// Skew in the coordinate to the euclidean coordinate system
-        const double F = (std::sqrt(1.0 + 3.0) - 1.0) / 3;
-        double s = (x + y + z) * F;
-        double xs = x + s;
-        double ys = y + s;
-        double zs = z + s;
+        Vec3<double> xyz = {x, y, z};
+        Vec3<double> xyzs = skew(xyz);
         /// Skewed unit simplex cell
-        Vec3<double> ijks = {std::floor(xs), std::floor(ys), std::floor(zs)}; // First vertex in euclidean coordinates
+        Vec3<double> ijks = xyzs.floor(); // First vertex in euclidean coordinates
         Vec3<double> ijk  = unskew(ijks); // First vertex in the simpletic cell
 
         /// Finding the traversal order of vertices of the unit simplex in which (x,y,z) is in.
-        Vec3<double> xyz = {x, y, z};
         Vec3<double> uvw = xyz - ijk; // Relative unit simplex cell origin
         std::array<Vec3<double>, 4> vertices; // n + 1 is the number of vertices in a n-dim. simplex
         vertices[0] = unskew({0.0, 0.0, 0.0});

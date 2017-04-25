@@ -90,6 +90,9 @@ struct Vec3 {
     /// Sum of the components of the vector
     inline T sum() const { return x + y + z; }
 
+    /// Floors the components
+    Vec3<T> floor() const { return {std::floor(x), std::floor(y), std::floor(z)}; }
+
     /// Dot product
     inline T dot(Vec3<T> u) const { return x * u.x + y * u.y + z * u.z; }
 
