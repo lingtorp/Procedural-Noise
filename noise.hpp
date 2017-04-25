@@ -334,7 +334,7 @@ public:
         Vec3<double> xyz = {x, y, z};
         Vec3<double> uvw = xyz - ijk; // Relative unit simplex cell origin
         std::array<Vec3<double>, 4> vertices; // n + 1 is the number of vertices in a n-dim. simplex
-        vertices[0] = {0.0, 0.0, 0.0};
+        vertices[0] = unskew({0.0, 0.0, 0.0});
         if (uvw.x > uvw.y) {
             if (uvw.y > uvw.z) {
                 // u, v, w
