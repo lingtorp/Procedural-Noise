@@ -254,16 +254,16 @@ public:
         int sum = b(i,j,k,0) + b(j,k,i,1) + b(k,i,j,2) + b(i,j,k,3) + b(j,k,i,4) + b(k,i,j,5) + b(i,j,k,6) + b(j,k,i,7);
 
         // Magnitude computation based on the three lower bits of the bit sum
-        Vec3<double> pqr = vertex;
+        Vec3<double> pqr = rel;
         if (bit(sum, 0) == !bit(sum, 1)) { // xor on bit 0, 1 --> rotation and zeroing
             if (bit(sum, 0)) { // Rotation
-                pqr.x = vertex.y;
-                pqr.y = vertex.z;
-                pqr.z = vertex.x;
+                pqr.x = rel.y;
+                pqr.y = rel.z;
+                pqr.z = rel.x;
             } else {
-                pqr.x = vertex.z;
-                pqr.y = vertex.x;
-                pqr.z = vertex.y;
+                pqr.x = rel.z;
+                pqr.y = rel.x;
+                pqr.z = rel.y;
             }
 
             if (bit(sum, 2)) { // Zeroing out
