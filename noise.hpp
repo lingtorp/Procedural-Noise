@@ -173,6 +173,7 @@ public:
         return {u, v};
     }
 
+    // FIXME: Doublecheck against the patent
     double get_value(double x, double y) const override {
         /// Skew
         const double F = (std::sqrt(2.0 + 1.0) - 1.0) / 2.0;
@@ -231,13 +232,13 @@ public:
     /***************** Simplex 3D Noise *****************/
     /// Hashes a coordinate (i, j, k) then selects one of the bit patterns
     u_char b(int i, int j, int k, int B) const {
-        auto bit_index = 4*(i & (0b1 << B)) + 2*(j & (0b1 << B)) + (k & (0b1 << B));
+        u_char bit_index = bit(i, B) << 2 | bit(j, B) << 2 | bit(k, B);
         return bit_patterns[bit_index];
     }
 
     /// Returns the n'th bit of num
-    inline bool bit(int num, int n) const {
-        return (bool) ((num >> n) & 0b1);
+    inline u_char bit(int num, int n) const {
+        return (u_char) ((num >> n) & 0b1);
     }
 
     /**
@@ -281,7 +282,7 @@ public:
         // Octant computation based on the three upper bits of the bit sum
         if (bit(sum, 5) == bit(sum, 3)) { pqr.x = -pqr.x; }
         if (bit(sum, 5) == bit(sum, 4)) { pqr.y = -pqr.y; }
-        if (bit(sum, 5) == (bit(sum, 4) != bit(sum, 3))) { pqr.z = -pqr.z; }
+        if (bit(sum, 5) != (bit(sum, 4) == !bit(sum, 3))) { pqr.z = -pqr.z; }
 
         return pqr;
     }
