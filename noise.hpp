@@ -155,7 +155,25 @@ class Simplex_Patent : public Noise {
 public:
     Simplex_Patent(uint64_t seed): bit_patterns{0x15, 0x38, 0x32, 0x2C, 0x0D, 0x13, 0x07, 0x2A} { }
 
+    /// Returns the n'th bit of num
+    inline u_char bit(int num, int n) const {
+        return (u_char) ((num >> n) & 0b1);
+    }
+
     /***************** Simplex 2D Noise *****************/
+    /// Skews the coordinate to normal Euclidean coordinate system
+    Vec2<double> skew(Vec2<double> v) const {
+        const double F = (std::sqrt(1.0 + 2.0) - 1.0) / 2.0;
+        double s = (v.x + v.y) * F;
+        return {v.x + s, v.y + s};
+    }
+
+    /// Unskews the coordinate back to the simpletic coordinate system
+    Vec2<double> unskew(Vec2<double> v) const {
+        const double G = (1.0 - (1.0 / sqrt(2.0 + 1.0))) / 2.0;
+        double s = (v.x + v.y) * G;
+        return {v.x - s, v.y - s};
+    }
 
     /// Given a coordinate (i, j) selects the B'th bit
     u_char b(int i, int j, int B) const {
@@ -234,11 +252,6 @@ public:
     u_char b(int i, int j, int k, int B) const {
         u_char bit_index = bit(i, B) << 2 | bit(j, B) << 2 | bit(k, B);
         return bit_patterns[bit_index];
-    }
-
-    /// Returns the n'th bit of num
-    inline u_char bit(int num, int n) const {
-        return (u_char) ((num >> n) & 0b1);
     }
 
     /**
