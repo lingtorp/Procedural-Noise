@@ -131,6 +131,9 @@ struct Vec2 {
     /// Sum of the components of the vector
     inline T sum() const { return x + y; }
 
+    /// Floors the components and returns a copy
+    inline Vec2<T> floor() const { return {std::floor(x), std::floor(y)}; }
+
     /// Dot product
     inline T dot(Vec2<T> u) const { return x * u.x + y * u.y; }
 
