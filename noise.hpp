@@ -552,8 +552,8 @@ public:
         double yf = Y - Y0; // Float offset inside the square [0, 1]
         double xf = X - X0; // Float offset inside the square [0, 1]
 
-        auto wx = fade(xf);
-        auto wy = fade(yf);
+        auto wx = smoothstep(xf);
+        auto wy = smoothstep(yf);
 
         /// Interpolate along x for the contributions from each of the gradients
         auto xa = lerp(wx, d00, d10);
@@ -612,9 +612,9 @@ public:
         double xf = X - X0; // Float offset inside the cube [0, 1]
         double zf = Z - Z0; // Float offset inside the cube [0, 1]
 
-        auto wx = fade(xf);
-        auto wy = fade(yf);
-        auto wz = fade(zf);
+        auto wx = smoothstep(xf);
+        auto wy = smoothstep(yf);
+        auto wz = smoothstep(zf);
 
         /// Interpolate along x for the contributions from each of the gradients
         auto xa = lerp(wx, d000, d100);
