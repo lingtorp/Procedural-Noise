@@ -660,6 +660,10 @@ public:
     }
 };
 
+/**
+ * Original Perlin noise from 1985
+ * ACM: http://dl.acm.org/citation.cfm?id=325247&CFID=927914208&CFTOKEN=31672107
+ */
 class Perlin : public Noise {
     // Implementation details for generation of gradients
     std::mt19937 engine;
