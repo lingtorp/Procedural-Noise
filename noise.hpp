@@ -390,7 +390,6 @@ public:
 };
 
 /**
- * Simplex noise implementation using the 'Improved Noise' patent algorithm
  * - Gradient table instead of on-the-fly gradient creation, as the original Perlin noise algorithm
  * - Permutation table instead of bit manipulation, unlike the patented algorithm
  * - Using modulo hashing to select the gradients via the permutation table
