@@ -138,6 +138,10 @@ struct Vec2 {
     inline T dot(Vec2<T> u) const { return x * u.x + y * u.y; }
 
     /// Operators
+    Vec2<T> operator+(const Vec2 &rhs) const {
+        return {x + rhs.x, y + rhs.y};
+    }
+
     Vec2<T> operator-(const Vec2 &rhs) const {
         return {x - rhs.x, y - rhs.y};
     }
