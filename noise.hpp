@@ -537,10 +537,10 @@ public:
         Vec2<double> x1y1 = grads[perms[(X1 + perms[Y1 % perms.size()]) % perms.size()]];
 
         /// Vectors from gradients to point in unit square
-        auto v00 = Vec2<double>{X - X0, Y - Y0}.normalize();
-        auto v10 = Vec2<double>{X - X1, Y - Y0}.normalize();
-        auto v01 = Vec2<double>{X - X0, Y - Y1}.normalize();
-        auto v11 = Vec2<double>{X - X1, Y - Y1}.normalize();
+        auto v00 = Vec2<double>{X - X0, Y - Y0};
+        auto v10 = Vec2<double>{X - X1, Y - Y0};
+        auto v01 = Vec2<double>{X - X0, Y - Y1};
+        auto v11 = Vec2<double>{X - X1, Y - Y1};
 
         /// Contribution of gradient vectors by dot product between relative vectors and gradients
         double d00 = x0y0.dot(v00);
