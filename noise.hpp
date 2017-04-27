@@ -388,9 +388,9 @@ public:
 
 /**
  * Simplex noise implementation using the 'Improved Noise' patent algorithm
- * - Gradient table instead of on-the-fly gradient creation
- * - Permutation table instead of bit manipulation
- * - Using modulo hashing to select the gradients
+ * - Gradient table instead of on-the-fly gradient creation, as the original Perlin noise algorithm
+ * - Permutation table instead of bit manipulation, unlike the patented algorithm
+ * - Using modulo hashing to select the gradients via the permutation table
  */
 class Simplex_Tables : public Noise {
     // Implementation details for generation of gradients
