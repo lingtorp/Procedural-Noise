@@ -458,8 +458,7 @@ public:
         auto grad_c = grads2[perms[ii + 1 + perms[jj + 1]]];
 
         /// Calculate contribution from the vertices in a circle
-        // max(0, r^2 - d^2)^4 * gradient.dot(vertex)
-        const double radius = 0.6 * 0.6; // Radius of the surflet circle (0.6 in patent)
+        const double radius = 0.6; // Radius of the surflet circle (0.6 in patent)
         double sum = 0.0;
 
         double t0 = radius - vertex_a.length()*vertex_a.length();
