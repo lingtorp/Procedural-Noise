@@ -390,6 +390,7 @@ public:
 };
 
 /**
+ * Simplex noise implementation using the a hybrid approach with features from simplex & Perlin noise
  * - Gradient table instead of on-the-fly gradient creation, as the original Perlin noise algorithm
  * - Permutation table instead of bit manipulation, unlike the patented algorithm
  * - Using modulo hashing to select the gradients via the permutation table
@@ -409,7 +410,7 @@ class Simplex_Tables : public Noise {
     std::vector<u_char> perms;
 public:
     /// Perms size is double that of grad to avoid index wrapping
-    Simplex_Tables(uint64_t seed): engine(seed), grads2(256), grads3(256), distr(-1.0, 1.0), perms(512) {
+    Simplex_Tables(uint64_t seed): engine(seed), grads2(256), grads3(256), distr(-1.0, 1.0), perms(256) {
         /// Fill the gradients list with random normalized vectors
         for (int i = 0; i < grads2.size(); i++) {
             double x = distr(engine);
