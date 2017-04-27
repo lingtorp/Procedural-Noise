@@ -464,20 +464,20 @@ public:
 
         double t0 = radius - vertex_a.length()*vertex_a.length();
         if (t0 > 0) {
-            sum += std::pow(t0, 4) * grad_a.dot(vertex_a);
+            sum += 8 * std::pow(t0, 4) * grad_a.dot(vertex_a);
         }
 
         double t1 = radius - vertex_b.length()*vertex_b.length();
         if (t1 > 0) {
-            sum += std::pow(t1, 4) * grad_b.dot(vertex_b);
+            sum += 8 * std::pow(t1, 4) * grad_b.dot(vertex_b);
         }
 
         double t2 = radius - vertex_c.length()*vertex_c.length();
         if (t2 > 0) {
-            sum += std::pow(t2, 4) * grad_c.dot(vertex_c);
+            sum += 8 * std::pow(t2, 4) * grad_c.dot(vertex_c);
         }
 
-        return 128.0 * sum;
+        return sum;
     }
 
     // TODO: Implement
