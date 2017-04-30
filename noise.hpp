@@ -32,6 +32,7 @@ public:
     }
 
     /// 3D turbulence noise which simulates fBm
+    // Reference: http://lodev.org/cgtutor/randomnoise.html & orignal Perlin noise paper
     double turbulence(double x, double y, double z, double zoom_factor) const {
         double value = 0;
         double zoom = zoom_factor;
