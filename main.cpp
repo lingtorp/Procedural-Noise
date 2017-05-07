@@ -1,29 +1,22 @@
 #include <iostream>
 #include "noise.hpp"
 #include <SDL2/SDL.h>
+#include <chrono>
 
-const int WIDTH = 512;
-const int HEIGHT = 512;
-const int ZOOM = 1;
-const int DIVISOR = 64; // Zooms into details of the noise
-const int SEED = 1;
-const double TIME_STEP = 0.5;
+const int WIDTH        = 512;
+const int HEIGHT       = 512;
+const int DIVISOR      = 64;
+const int SEED         = 1;
+const double TIME_STEP = 0.1;
+
+/// Used to prevent the removal of the assignment when using optimizations enabled
+volatile static double *mem_dump;
 
 void draw(double time, SDL_Renderer *renderer, Noise &noise_gen) {
-    for (size_t x = 0; x < WIDTH; x += ZOOM) {
-        for (size_t y = 0; y < HEIGHT; y += ZOOM) {
-            // std::vector<float> amplitudes = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
-            // auto noise = noise_gen.octaves(x, y, time, amplitudes);
-            // auto noise = std::abs(noise_gen.octaves(x, y, time, DIVISOR, 0.9));
-            // auto noise = noise_gen.get_value(x / DIVISOR, y / DIVISOR);
-            // auto noise = noise_gen.get_value(x / DIVISOR, y / DIVISOR, time / DIVISOR);
-            // auto noise = noise_gen.turbulence_ridged(x, y, time, DIVISOR);
-            // auto noise = noise_gen.domain_wrapping(x, y, time, DIVISOR);
-            // auto noise = noise_gen.turbulence_ridged(x, y, time, DIVISOR);
-            // auto noise = noise_gen.get_value(x, y);
-            auto noise = noise_gen.turbulence(x, y, DIVISOR);
+    for (size_t x = 0; x < WIDTH; x++) {
+        for (size_t y = 0; y < HEIGHT; y++) {
+            auto noise = noise_gen.turbulence(x, y, time, DIVISOR);
             auto color = 125.5f + noise * 125.5f;
-            // SDL_Log("Noise: %f, Color: %f \n", noise, color);
             SDL_SetRenderDrawColor(renderer, color, color, color, 1.0f);
             SDL_RenderDrawPoint(renderer, x, y);
         }
@@ -31,30 +24,37 @@ void draw(double time, SDL_Renderer *renderer, Noise &noise_gen) {
     SDL_RenderPresent(renderer);
 }
 
-int main() {
-    SDL_Window *window;
-    SDL_Renderer *renderer;
-    SDL_CreateWindowAndRenderer(WIDTH, HEIGHT, 0, &window, &renderer);
-    Simplex_Patent noise(SEED);
-    bool quit = false;
-    double time = 0.0;
-    auto last_tick = SDL_GetTicks();
-    SDL_Event event;
-    while (!quit) {
-        auto new_tick = SDL_GetTicks();
-        float delta = new_tick - last_tick;
-        last_tick = new_tick;
-        if (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT)
-                quit = true;
+inline void draw(double time, Noise &noise_gen) {
+    for (size_t x = 0; x < WIDTH; x++) {
+        for (size_t y = 0; y < HEIGHT; y++) {
+            double noise = noise_gen.turbulence(x, y, time, DIVISOR);
+            double color = 125.5f + noise * 125.5f;
+            *mem_dump = color;
         }
+    }
+}
+
+int main() {
+    mem_dump = (double *) malloc(sizeof(double)); // Should prevent removal by optimization
+
+    Perlin noise(SEED);
+    double time = 0.0;
+    int frames = 0;
+    int total_frames = 10; // Total frames to render
+    std::vector<float> execution_times(total_frames);
+
+    while (frames < total_frames) {
         time += TIME_STEP;
-        draw(time, renderer, noise);
-        std::cout << std::floor(1000 / delta) << std::endl; // Prints fps
+        std::chrono::high_resolution_clock::time_point start  = std::chrono::high_resolution_clock::now();
+        draw(time, noise);
+        std::chrono::high_resolution_clock::time_point finish = std::chrono::high_resolution_clock::now();
+        execution_times.push_back(std::chrono::duration_cast<std::chrono::microseconds>(finish - start).count() / 1000.0f);
+        frames++;
     }
 
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
+    std::cout << "Avg. execution time: " << std::accumulate(execution_times.begin(), execution_times.end(), 0) / total_frames << " ms" << std::endl;
+
+    std::cout << mem_dump + execution_times.size() << std::endl; // Should prevent removal by optimization
+
     return EXIT_SUCCESS;
 }
