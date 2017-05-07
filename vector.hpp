@@ -18,44 +18,6 @@ template<typename T>
 struct Vec3;
 
 template<typename T>
-struct Vec4;
-
-template<typename T>
-struct Vec4 {
-    T x, y, z, w;
-
-    Vec4(T x, T y, T z, T w): x(x), y(y), z(z), w(w) { };
-    Vec4(T x, T y, T z): x(x), y(y), z(z), w(0.0f) { };
-    Vec4(): x(0), y(0), z(0), w(0) { };
-    Vec4(Vec3<T> vec): x(vec.x), y(vec.y), z(vec.z), w(0.0) { };
-
-    /// Operators
-    /// Returns the members x, y, z, w in index order (invalid indexes returns w)
-    T& operator[] (const int index) {
-        switch (index) { // Should be a jump table when optimised
-            case 0:
-                return x;
-            case 1:
-                return y;
-            case 2:
-                return z;
-            case 3:
-                return w;
-            default:
-                return x;
-        }
-    }
-
-    bool operator==(const Vec4 &rhs) {
-        return x == rhs.x && y == rhs.y && z == rhs.z && w == rhs.w;
-    }
-
-    friend std::ostream &operator<<(std::ostream &os, const Vec4 &vec) {
-        return os << "(x:" << vec.x << " y:" << vec.y << " z:" << vec.z << " w:" << vec.w << ")";
-    }
-};
-
-template<typename T>
 struct Vec3 {
     T x, y, z;
 
