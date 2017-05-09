@@ -89,30 +89,19 @@ public:
 
     /// 3D fractional Brownian motion noise of the underlying noise algorithm
     double octaves(double x, double y, double z, int octaves, double persistance = 1.0, double amplitude = 1.0) const {
-//        double total = 0.0;
-//        double max_value = 0.0;
-//        double frequency = 1.0;
-//        for (size_t i = 0; i < octaves; ++i) {
-//            total += get_value(x / frequency, y / frequency, z / frequency) * amplitude;
-//            max_value += amplitude;
-//
-//            amplitude *= persistance;
-//            frequency *= 2;
-//        }
-//
-//        // Dividing by the max amplitude sum brings it into [-1, 1] range
-//        return total / max_value;
-        float sum = 0.0f;
-        float frequency   = 1.0f;
-        float amp   = 1.0f;
-        float lacunarity  = 2.1042f;
-        float persistence = 0.65f;
-        for (int i = 0; i < octaves; i++) {
-            sum += get_value(x * frequency,  y * frequency, z  * frequency) * amp;
-            frequency *= lacunarity;
-            amp *= persistence;
+        double total = 0.0;
+        double max_value = 0.0;
+        double frequency = 1.0;
+        for (size_t i = 0; i < octaves; ++i) {
+            total += get_value(x / frequency, y / frequency, z / frequency) * amplitude;
+            max_value += amplitude;
+
+            amplitude *= persistance;
+            frequency *= 2;
         }
-        return sum;
+
+        // Dividing by the max amplitude sum brings it into [-1, 1] range
+        return total / max_value;
     }
 
     /// 3D fractional Brownian motion noise in which each octave gets its own amplitude
@@ -131,7 +120,7 @@ public:
     }
 
     /// Warps the domain of the noise function creating more natural looking features
-    double domain_warping(double x, double y, double z, double scale) const {
+    double domain_wrapping(double x, double y, double z, double scale) const {
         Vec3<double> p{x, y, z};
         Vec3<double> offset{50.2, 10.3, 10.5};
 
@@ -195,71 +184,73 @@ public:
         return bit_patterns[bit_index];
     }
 
-    /**
-     * Given a coordinate (i, j), rounds it to nearest integer coordinate and generates a gradient vector using
-     * bit manipulation similiar to the patented Simplex noise algorithm.
-     * @param ij  Coordinate vector
-     * @return Gradient vector
-     */
-    Vec2<double> grad(Vec2<double> ij, Vec2<double> rel) const {
-        int i = (int) ij.x;
-        int j = (int) ij.y;
+    /// Given a coordinate (i, j) generates a gradient vector
+    Vec2<double> grad(int i, int j) const {
         int bit_sum = b(i,j,0) + b(j,i,1) + b(i,j,2) + b(j,i,3);
-        auto u = (bit_sum & 0b01) ? rel.y : 0.0f;
-        auto v = (bit_sum & 0b10) ? rel.x : 0.0f;
+        auto u = (bit_sum & 0b01) ? 1.0f : 0.0f;
+        auto v = (bit_sum & 0b10) ? 1.0f : 0.0f;
         u = (bit_sum & 0b1000) ? -u : u;
         v = (bit_sum & 0b0100) ? -v : v;
         return {u, v};
     }
 
-    double kernel(Vec2<double> uv, Vec2<double> ij, Vec2<double> vertex) const {
-        double sum = 0.0;
-        Vec2<double> rel = uv - vertex; // Relative simplex cell vertex
-        double t = 0.6 - rel.length()*rel.length(); // 0.6 - x*x - y*y - z*z
-        if (t > 0) {
-            Vec2<double> pqr = grad(ij + vertex, rel); // Generate gradient vector for vertex
-            t *= t;
-            sum += 8 * t * t * pqr.sum();
-        }
-        return sum;
-    }
-
+    // FIXME: Doublecheck against the patent
     double get_value(double x, double y) const override {
-        Vec2<double> xy  = {x, y};
-        Vec2<double> xys = skew(xy);
+        /// Skew
+        const double F = (std::sqrt(2.0 + 1.0) - 1.0) / 2.0;
+        double s = (x + y) * F;
+        double xs = x + s;
+        double ys = y + s;
+        int i = (int) std::floor(xs);
+        int j = (int) std::floor(ys);
 
-        Vec2<double> ijs = xys.floor();
-        Vec2<double> ij  = unskew(ijs);
+        /// Unskew - find first vertex of the simplex
+        const double G = (3.0 - std::sqrt(2.0 + 1.0)) / 6.0;
+        double t = (i + j) * G;
+        Vec2<double> cell_origin{i - t, j - t};
+        Vec2<double> vertex_a = Vec2<double>{x, y} - cell_origin;
 
-        Vec2<double> uv = xy - ij;
-
-        std::array<Vec2<double>, 3> vertices;
-        vertices[0] = unskew({0.0, 0.0});
-        if (uv.x < uv.y) {
-            vertices[1] = unskew({0.0, 1.0});
+        // Figure out which vertex is next
+        auto x_step = 0;
+        auto y_step = 0;
+        if (vertex_a.x > vertex_a.y) { // Lower triangle
+            x_step = 1;
         } else {
-            vertices[1] = unskew({1.0, 0.0});
+            y_step = 1;
         }
-        vertices[2] = unskew({1.0, 1.0});
 
-        return kernel(uv, ij, vertices[0]) + kernel(uv, ij, vertices[1]) + kernel(uv, ij, vertices[2]);
+        // A change of one unit step is; x = x' + (x' + y') * G <--> x = 1.0 + (1.0 + 1.0) * G <--> x = 1.0 + 2.0 * G
+        Vec2<double> vertex_b{vertex_a.x - x_step + G, vertex_a.y - y_step + G};
+        Vec2<double> vertex_c{vertex_a.x - 1.0 + 2.0 * G, vertex_a.y - 1.0 + 2.0 * G};
+
+        auto grad_a = grad(i, j);
+        auto grad_b = grad(i + x_step, j + y_step);
+        auto grad_c = grad(i + 1, j + 1);
+
+        /// Calculate contribution from the vertices in a circle
+        // max(0, r^2 - d^2)^4 * gradient.dot(vertex)
+        const double radius = 0.6 * 0.6; // Radius of the surflet circle (0.6 in patent)
+        double sum = 0.0;
+
+        double t0 = radius - vertex_a.length()*vertex_a.length();
+        if (t0 > 0) {
+            sum += std::pow(t0, 4) * grad_a.dot(vertex_a);
+        }
+
+        double t1 = radius - vertex_b.length()*vertex_b.length();
+        if (t1 > 0) {
+            sum += std::pow(t1, 4) * grad_b.dot(vertex_b);
+        }
+
+        double t2 = radius - vertex_c.length()*vertex_c.length();
+        if (t2 > 0) {
+            sum += std::pow(t2, 4) * grad_c.dot(vertex_c);
+        }
+
+        return 220.0 * sum;
     }
 
     /********************************** Simplex 3D Noise **********************************/
-
-    /// Skews the coordinate to normal Euclidean coordinate system
-    Vec3<double> skew(Vec3<double> v) const {
-        const double F = (std::sqrt(1.0 + 3.0) - 1.0) / 3;
-        double s = (v.x + v.y + v.z) * F;
-        return {v.x + s, v.y + s, v.z + s};
-    }
-
-    /// Unskews the coordinate back to the simpletic coordinate system
-    Vec3<double> unskew(Vec3<double> v) const {
-        const double G = (1.0 - (1.0 / sqrt(3.0 + 1.0))) / 3.0;
-        double s = (v.x + v.y + v.z) * G;
-        return {v.x - s, v.y - s, v.z - s};
-    }
 
     /// Hashes a coordinate (i, j, k) then selects one of the bit patterns
     u_char b(int i, int j, int k, int B) const {
@@ -311,6 +302,20 @@ public:
         if (bit(sum, 5) != (bit(sum, 4) == !bit(sum, 3))) { pqr.z = -pqr.z; }
 
         return pqr;
+    }
+
+    /// Skews the coordinate to normal Euclidean coordinate system
+    Vec3<double> skew(Vec3<double> v) const {
+        const double F = (std::sqrt(1.0 + 3.0) - 1.0) / 3;
+        double s = (v.x + v.y + v.z) * F;
+        return {v.x + s, v.y + s, v.z + s};
+    }
+
+    /// Unskews the coordinate back to the simpletic coordinate system
+    Vec3<double> unskew(Vec3<double> v) const {
+        const double G = (1.0 - (1.0 / sqrt(3.0 + 1.0))) / 3.0;
+        double s = (v.x + v.y + v.z) * G;
+        return {v.x - s, v.y - s, v.z - s};
     }
 
     /**
@@ -690,8 +695,6 @@ inline int bbs_hash(int t) { return (t * t) % BBS_MODULUS; }
 /**
  * Original Perlin noise from 1985
  * ACM: http://dl.acm.org/citation.cfm?id=325247&CFID=927914208&CFTOKEN=31672107
- *
- * USES THE NEW INTERPOLATION FUNCTION FROM 'IMPROVED PERLIN' (Perlin, 2002).
  */
 class Perlin : public Noise {
     // Implementation details for generation of gradients
@@ -738,6 +741,7 @@ public:
         int Y1 = (int) std::ceil(Y);
 
         /// Gradients using hashed indices from lookup list
+        // FIXME: Implement variation where perms.size() is a power of two in order to do a bit masking instead, measure speedup.
         Vec2<double> x0y0 = grads[perms[(X0 + perms[Y0 % perms.size()]) % perms.size()]];
         Vec2<double> x1y0 = grads[perms[(X1 + perms[Y0 % perms.size()]) % perms.size()]];
         Vec2<double> x0y1 = grads[perms[(X0 + perms[Y1 % perms.size()]) % perms.size()]];
@@ -759,8 +763,8 @@ public:
         double yf = Y - Y0; // Float offset inside the square [0, 1]
         double xf = X - X0; // Float offset inside the square [0, 1]
 
-        auto wx = fade(xf);
-        auto wy = fade(yf);
+        auto wx = smoothstep(xf);
+        auto wy = smoothstep(yf);
 
         /// Interpolate along x for the contributions from each of the gradients
         auto xa = lerp(wx, d00, d10);
@@ -819,9 +823,9 @@ public:
         double xf = X - X0; // Float offset inside the cube [0, 1]
         double zf = Z - Z0; // Float offset inside the cube [0, 1]
 
-        auto wx = fade(xf);
-        auto wy = fade(yf);
-        auto wz = fade(zf);
+        auto wx = smoothstep(xf);
+        auto wy = smoothstep(yf);
+        auto wz = smoothstep(zf);
 
         /// Interpolate along x for the contributions from each of the gradients
         auto xa = lerp(wx, d000, d100);
