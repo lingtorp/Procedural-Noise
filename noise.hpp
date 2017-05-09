@@ -25,7 +25,7 @@ public:
         double value = 0;
         double zoom = zoom_factor;
         while (zoom >= 1.0) {
-            value += get_value(x / zoom, y / zoom) * zoom;
+            value += std::abs(get_value(x / zoom, y / zoom) * zoom);
             zoom /= 2;
         }
         return value / zoom_factor;
@@ -37,15 +37,32 @@ public:
         double value = 0;
         double zoom = zoom_factor;
         while (zoom >= 1.0) {
-            value += get_value(x / zoom, y / zoom, z / zoom) * zoom;
+            value += std::abs(get_value(x / zoom, y / zoom, z / zoom) * zoom);
+            zoom /= 2;
+        }
+        return value / zoom_factor;
+    }
+
+    /// 2D turbulence noise which simulates fBm
+    double fbm(Vec2<double> v, double zoom_factor) const {
+        double value = 0;
+        double zoom = zoom_factor;
+        while (zoom >= 1.0) {
+            value += get_value(v.x / zoom, v.y / zoom) * zoom;
             zoom /= 2;
         }
         return value / zoom_factor;
     }
 
     /// 3D turbulence noise which simulates fBm
-    double fbm(Vec3<double> in, double zoom_factor) const {
-        return turbulence(in.x, in.y, in.z, zoom_factor);
+    double fbm(Vec3<double> v, double zoom_factor) const {
+        double value = 0;
+        double zoom = zoom_factor;
+        while (zoom >= 1.0) {
+            value += get_value(v.x / zoom, v.y / zoom, v.z / zoom) * zoom;
+            zoom /= 2;
+        }
+        return value / zoom_factor;
     }
 
     /// 3D Billowy turbulence
