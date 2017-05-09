@@ -663,35 +663,6 @@ public:
     }
 };
 
-/// The 2D and 3D tables of gradients used in Perlin's 2002 improvement.
-/// Represents all vectors from a 2-d square's/3-d cube's mid-point to the center of its edges.
-const std::vector<float> EDGE_GRADIENTS_2D = {
-        1, 0,  -1,  0,
-        0, 1,   0, -1
-};
-
-const std::vector<float> EDGE_GRADIENTS_3D = {
-        1,  1,  0,  0,      -1,  1,  0,  0,      1, -1,  0,  0,      -1, -1,  0,  0,
-        1,  0,  1,  0,      -1,  0,  1,  0,      1,  0, -1,  0,      -1,  0, -1,  0,
-        0,  1,  1,  0,       0, -1,  1,  0,      0,  1, -1,  0,       0, -1, -1,  0,
-        1,  1,  0,  0,      -1,  1,  0,  0,      0, -1,  1,  0,       0, -1, -1,  0, // four extra gradients are padded to avoid (% 12)-operations
-};
-
-/// The 2D and 3D tables of gradients used in Olano's 2005 improvement.
-/// Represents all vectors from a 2-d square's/3-d cube's mid-point to its vertices.
-const std::vector<float> CORNER_GRADIENTS_2D = {
-        1, 1,   1, -1,
-        -1, 1,  -1, -1
-};
-
-const std::vector<float> CORNER_GRADIENTS_3D = {
-        1,  1,  1,  0,      1,  1, -1,  0,     1, -1,  1,  0,      1, -1, -1,  0,
-        -1,  1,  1,  0,     -1,  1, -1,  0,    -1, -1,  1,  0,     -1, -1, -1,  0,
-};
-
-#define BBS_MODULUS 61
-inline int bbs_hash(int t) { return (t * t) % BBS_MODULUS; }
-
 /**
  * Original Perlin noise from 1985
  * ACM: http://dl.acm.org/citation.cfm?id=325247&CFID=927914208&CFTOKEN=31672107
