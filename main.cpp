@@ -2,10 +2,15 @@
 #include "noise.hpp"
 #include <SDL2/SDL.h>
 
+/** */
 const int WIDTH = 512;
+/** */
 const int HEIGHT = 512;
-const int DIVISOR = 64; // Zooms into details of the noise
+/** Zooms into details of the noise */
+const int DIVISOR = 64;
+/** */
 const int SEED = 1;
+/** */
 const double TIME_STEP = 0.5;
 
 void draw(double time, SDL_Renderer *renderer, Noise &noise_gen) {
@@ -16,8 +21,8 @@ void draw(double time, SDL_Renderer *renderer, Noise &noise_gen) {
             // auto noise = noise_gen.domain_wrapping(x, y, time, DIVISOR);
             // auto noise = noise_gen.turbulence_ridged(x, y, time, DIVISOR);
             // auto noise = noise_gen.get_value(x, y);
-            auto noise = noise_gen.turbulence(x, y, DIVISOR);
-            // auto noise = noise_gen.fbm({(double) x, (double) y, time}, DIVISOR);
+            // auto noise = noise_gen.turbulence(x, y, DIVISOR);
+            auto noise = noise_gen.fbm(x, y, time, DIVISOR);
             auto color = 125.5f + noise * 125.5f;
             // SDL_Log("Noise: %f, Color: %f \n", noise, color);
             SDL_SetRenderDrawColor(renderer, color, color, color, 1.0f);
@@ -31,7 +36,7 @@ int main() {
     SDL_Window *window;
     SDL_Renderer *renderer;
     SDL_CreateWindowAndRenderer(WIDTH, HEIGHT, 0, &window, &renderer);
-    Simplex_Tables noise(SEED);
+    Perlin::Improved<> noise(SEED);
     bool quit = false;
     double time = 0.0;
     auto last_tick = SDL_GetTicks();
@@ -45,10 +50,10 @@ int main() {
         auto new_tick = SDL_GetTicks();
         float delta = new_tick - last_tick;
         last_tick = new_tick;
-
         time += TIME_STEP;
         draw(time, renderer, noise);
-        std::cout << std::floor(1000 / delta) << std::endl; // Prints fps
+        /** Print the FPS */
+        std::cout << std::floor(1000 / delta) << std::endl;
     }
 
     SDL_DestroyRenderer(renderer);
