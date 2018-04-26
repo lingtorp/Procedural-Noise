@@ -7,6 +7,8 @@ Assortment of noise functions, mainly used in other projects.
 * Readable code rather than speed.
 * Variants of different algorithms in order to promote comparisons between algorithms and different implementation techniques
 
+The end objective for this library is to be the drop-in noise generation source for a lot of projects. Those who need the fastest performance will find it easy enough to optimize and those who want to experiment and learn should find the source code readable and inviting.
+
 # License
 The MIT License (MIT)
 Copyright (c) 2017 Alexander Lingtorp
