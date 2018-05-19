@@ -50,10 +50,10 @@ public:
         return value / zoom_factor;
     }
   
-      /// 2D turbulence noise which simulates fBm
-      double fbm(Vec2<double> v, double zoom_factor) const {
-          return fbm(v.x, v.y, zoom_factor);
-      }
+    /// 2D turbulence noise which simulates fBm
+    double fbm(Vec2<double> v, double zoom_factor) const {
+        return fbm(v.x, v.y, zoom_factor);
+    }
 
     /// 2D turbulence noise which simulates fBm
     double fbm(double x, double y, double zoom_factor) const {
@@ -560,30 +560,30 @@ namespace Perlin {
             std::uniform_real_distribution<> distr(-1.0, 1.0);
             /// 4 gradients for each edge of a unit square, no need for padding, is power of 2
             grads = {
-                    Vec2<double>{1,  0},
-                    Vec2<double>{0,  1},
-                    Vec2<double>{-1, 0},
-                    Vec2<double>{0,  -1}
+                    Vec2<double>{ 1,  0},
+                    Vec2<double>{ 0,  1},
+                    Vec2<double>{-1,  0},
+                    Vec2<double>{ 0, -1}
             };
             // FIXME: Is all of the vectors inside grads?
             /// 12 gradients from the center to each edge of a unit cube, 4 duplicated vectors for padding so that the modulo is on a power of 2 (faster)
             grads3 = {
-                    Vec3<double>{1,  1,  0},
-                    Vec3<double>{-1, 1,  0},
-                    Vec3<double>{1,  -1, 0},
-                    Vec3<double>{-1, -1, 0},
-                    Vec3<double>{1,  0,  1},
-                    Vec3<double>{-1, 0,  1},
-                    Vec3<double>{1,  0,  -1},
-                    Vec3<double>{-1, 0,  -1},
-                    Vec3<double>{0,  1,  1},
-                    Vec3<double>{0,  -1, 1},
-                    Vec3<double>{0,  1,  -1},
-                    Vec3<double>{0,  -1, -1},
-                    Vec3<double>{1,  1,  0},
-                    Vec3<double>{-1, 1,  0},
-                    Vec3<double>{0,  -1, 1},
-                    Vec3<double>{0,  -1, -1}
+                    Vec3<double>{ 1,  1,  0},
+                    Vec3<double>{-1,  1,  0},
+                    Vec3<double>{ 1, -1,  0},
+                    Vec3<double>{-1, -1,  0},
+                    Vec3<double>{ 1,  0,  1},
+                    Vec3<double>{-1,  0,  1},
+                    Vec3<double>{ 1,  0, -1},
+                    Vec3<double>{-1,  0, -1},
+                    Vec3<double>{ 0,  1,  1},
+                    Vec3<double>{ 0, -1,  1},
+                    Vec3<double>{ 0,  1, -1},
+                    Vec3<double>{ 0, -1, -1},
+                    Vec3<double>{ 1,  1,  0},
+                    Vec3<double>{-1,  1,  0},
+                    Vec3<double>{ 0, -1,  1},
+                    Vec3<double>{ 0, -1, -1}
             };
             
             /// Fill gradient lookup array with random indices to the gradients list
