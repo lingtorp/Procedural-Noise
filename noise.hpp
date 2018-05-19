@@ -180,8 +180,7 @@ protected:
     // TODO: Document
     static inline double smoothstep(double t) { return t * t * (3 - 2 * t); }
     // TODO: Document
-    static inline double fade(double t) { return t * t * t * (t * (t * 6 - 15) + 10); }
-
+    static inline double quintic_fade(double t) { return t * t * t * (t * (t * 6 - 15) + 10); }
     /// Linear interpolation between a and b with t as a variable
     static inline double lerp(double t, double a, double b) { return (1 - t) * a + t * b; }
 };
@@ -627,8 +626,8 @@ namespace Perlin {
             double yf = Y - Y0; // Float offset inside the square [0, 1]
             double xf = X - X0; // Float offset inside the square [0, 1]
             
-            auto wx = fade(xf);
-            auto wy = fade(yf);
+            auto wx = quintic_fade(xf);
+            auto wy = quintic_fade(yf);
             
             /// Interpolate along x for the contributions from each of the gradients
             auto xa = lerp(wx, d00, d10);
@@ -695,9 +694,9 @@ namespace Perlin {
             double xf = X - X0; // Float offset inside the cube [0, 1]
             double zf = Z - Z0; // Float offset inside the cube [0, 1]
             
-            auto wx = fade(xf);
-            auto wy = fade(yf);
-            auto wz = fade(zf);
+            auto wx = quintic_fade(xf);
+            auto wy = quintic_fade(yf);
+            auto wz = quintic_fade(zf);
             
             /// Interpolate along x for the contributions from each of the gradients
             auto xa = lerp(wx, d000, d100);
