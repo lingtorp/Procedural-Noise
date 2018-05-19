@@ -173,6 +173,10 @@ public:
     }
 
 protected:
+    static inline double clamp(double in, double lo, double hi) {
+      return std::max(lo, std::min(hi, in));
+    }
+  
     // TODO: Document
     static inline double smoothstep(double t) { return t * t * (3 - 2 * t); }
     // TODO: Document
@@ -424,8 +428,10 @@ namespace Simplex {
             vertices[3] = unskew({1.0, 1.0, 1.0});
             
             /// Spherical kernel summation - contribution from each vertex
-            return kernel(uvw, ijk, vertices[0]) + kernel(uvw, ijk, vertices[1]) +
-                   kernel(uvw, ijk, vertices[2]) + kernel(uvw, ijk, vertices[3]);
+            double sum =  kernel(uvw, ijk, vertices[0]) + kernel(uvw, ijk, vertices[1]) +
+                          kernel(uvw, ijk, vertices[2]) + kernel(uvw, ijk, vertices[3]);
+            
+            return clamp(sum, -1.0, 1.0);
         }
     };
 
@@ -518,7 +524,7 @@ namespace Simplex {
                 sum += 8 * std::pow(t2, 4) * grad_c.dot(vertex_c);
             }
             
-            return sum;
+            return clamp(sum, -1.0, 1.0);
         }
         
         // TODO: Implement
@@ -630,7 +636,7 @@ namespace Perlin {
             
             auto val = lerp(wy, xa, xb);
             
-            return val;
+            return clamp(val, -1.0, 1.0);
         }
         
         double get_value(double X, double Y, double Z) const override {
@@ -707,7 +713,7 @@ namespace Perlin {
             /// Interpolate along z for the contributions from each of the gradients
             auto za = lerp(wz, ya, yb);
             
-            return za;
+            return clamp(za, -1.0, 1.0);
         }
     };
 
@@ -790,7 +796,7 @@ namespace Perlin {
             
             auto val = lerp(wy, xa, xb);
             
-            return val;
+            return clamp(val, -1.0, 1.0);
         }
         
         double get_value(double X, double Y, double Z) const override {
@@ -867,7 +873,7 @@ namespace Perlin {
             /// Interpolate along z for the contributions from each of the gradients
             auto za = lerp(wz, ya, yb);
             
-            return za;
+            return clamp(za, -1.0, 1.0);
         }
     };
 }
