@@ -2,6 +2,22 @@
 #include "noise.hpp"
 #include <SDL2/SDL.h>
 #include <future>
+// OpenGL related headers
+#include <GL/glew.h>
+#include <SDL_opengl.h>
+
+struct OpenGLState {
+  GLuint program;
+};
+
+OpenGLState init_opengl() {
+  glewExperimental = (GLboolean) true;
+  glewInit();
+}
+
+void draw_opengl(const OpenGLState& gl_state) {
+
+}
 
 /** Zooms into details of the noise */
 const int DIVISOR = 64;
@@ -53,7 +69,7 @@ public:
 
 void draw(Semaphore* qsem, Semaphore* sem, Region reg, const double* time, uint32_t* pixels, const Noise& noise_gen) {
   while (qsem->peek()) {
-    std::this_thread::sleep_for(std::chrono::nanoseconds(13));
+    std::this_thread::sleep_for(std::chrono::nanoseconds(100));
     while (sem->try_wait()) {
       for (size_t x = reg.x0; x <= reg.x1; x++) {
         for (size_t y = reg.y0; y <= reg.y1; y++) {
@@ -88,14 +104,21 @@ void draw(Semaphore* qsem, Semaphore* sem, Region reg, const double* time, uint3
 
 int main() {
   SDL_Init(SDL_INIT_EVERYTHING);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
   
   const size_t nx = 400;
   const size_t ny = 400;
-  SDL_Window* window = SDL_CreateWindow("Noise", 0, 0, nx, ny, 0);
+  auto window_flags = SDL_WINDOW_OPENGL;
+  SDL_Window* window = SDL_CreateWindow("Noise", 0, 0, nx, ny, window_flags);
+  SDL_GLContext context = SDL_GL_CreateContext(window);
+  SDL_GL_SetSwapInterval(0); // Disables vsync
+  
   SDL_Surface* scr = SDL_GetWindowSurface(window);
   uint32_t* pixels = (uint32_t*) scr->pixels;
   
-  Perlin::Improved<> noise(SEED);
+  Simplex::Patent noise(SEED);
   double time = 0.0;
   
   const size_t num_threads = std::thread::hardware_concurrency() == 0 ? 4 : std::thread::hardware_concurrency();
@@ -129,7 +152,8 @@ int main() {
     SDL_UpdateWindowSurface(window);
   }
   // FIXME: Super slow closing time
-  while (qsem.try_wait()) {} // Try to signal quit to all threads
+  // TODO: Add another semaphore for the number of completed work items/threads
+  while (!qsem.peek()) {} // Try to signal quit to all threads
   for (auto& thread : threads) {
     thread.join();
   }

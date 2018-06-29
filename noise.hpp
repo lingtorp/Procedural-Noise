@@ -39,7 +39,7 @@ public:
     // FIXME: Is turbulence like defined here really from the original Perlin patent?
     // FIXME: Is it a visually useful effect?
     /// 3D turbulence noise which simulates fBm
-    // Reference: http://lodev.org/cgtutor/randomnoise.html & orignal Perlin noise paper
+    /// Reference: http://lodev.org/cgtutor/randomnoise.html & orignal Perlin noise paper
     double turbulence(double x, double y, double z, double zoom_factor) const {
         double value = 0;
         double zoom = zoom_factor;
@@ -145,9 +145,9 @@ public:
         double total = 0.0;
         double max_value = 0.0;
         double frequency = 1.0;
-        for (size_t i = 0; i < amplitudes.size(); ++i) {
-            total += get_value(x / frequency, y / frequency, z / frequency) * amplitudes[i];
-            max_value += amplitudes[i];
+        for (double amplitude : amplitudes) {
+            total += get_value(x / frequency, y / frequency, z / frequency) * amplitude;
+            max_value += amplitude;
             frequency *= 2;
         }
 
@@ -227,9 +227,9 @@ namespace Simplex {
         
         /// Given a coordinate (i, j) generates a gradient vector
         Vec2<double> grad(int i, int j) const {
-            int bit_sum = b(i, j, 0) + b(j, i, 1) + b(i, j, 2) + b(j, i, 3);
-            auto u = (bit_sum & 0b01) ? 1.0f : 0.0f;
-            auto v = (bit_sum & 0b10) ? 1.0f : 0.0f;
+            uint32_t bit_sum = b(i, j, 0) + b(j, i, 1) + b(i, j, 2) + b(j, i, 3);
+            auto u = (bit_sum & 0b01) ? 1.0 : 0.0;
+            auto v = (bit_sum & 0b10) ? 1.0 : 0.0;
             u = (bit_sum & 0b1000) ? -u : u;
             v = (bit_sum & 0b0100) ? -v : v;
             return {u, v};
