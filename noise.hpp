@@ -679,15 +679,15 @@ namespace Perlin {
             auto v111 = Vec3<double>{X - X1, Y - Y1, Z - Z1};
             
             /// Contribution of gradient vectors by dot product between relative vectors and gradients
-            double d000 = x0y0z0.dot(v000);
-            double d100 = x1y0z0.dot(v100);
-            double d010 = x0y1z0.dot(v010);
-            double d110 = x1y1z0.dot(v110);
+            double d000 = dot(x0y0z0, v000);
+            double d100 = dot(x1y0z0, v100);
+            double d010 = dot(x0y1z0, v010);
+            double d110 = dot(x1y1z0, v110);
             
-            double d001 = x0y0z1.dot(v001);
-            double d101 = x1y0z1.dot(v101);
-            double d011 = x0y1z1.dot(v011);
-            double d111 = x1y1z1.dot(v111);
+            double d001 = dot(x0y0z1, v001);
+            double d101 = dot(x1y0z1, v101);
+            double d011 = dot(x0y1z1, v011);
+            double d111 = dot(x1y1z1, v111);
             
             /// Interpolate dot product values at sample point using polynomial interpolation 6x^5 - 15x^4 + 10x^3
             double yf = Y - Y0; // Float offset inside the cube [0, 1]
@@ -739,9 +739,9 @@ namespace Perlin {
                 double x = distr(engine);
                 double y = distr(engine);
                 double z = distr(engine);
-                auto grad_vector = Vec2<double>{x, y}.normalize();
+                auto grad_vector = Vec2<double>{x, y}.normalized();
                 grads[i] = grad_vector;
-                auto grad3_vector = Vec3<double>{x, y, z}.normalize();
+                auto grad3_vector = Vec3<double>{x, y, z}.normalized();
                 grads3[i] = grad3_vector;
             }
             
@@ -839,15 +839,15 @@ namespace Perlin {
             auto v111 = Vec3<double>{X - X1, Y - Y1, Z - Z1};
             
             /// Contribution of gradient vectors by dot product between relative vectors and gradients
-            double d000 = x0y0z0.dot(v000);
-            double d100 = x1y0z0.dot(v100);
-            double d010 = x0y1z0.dot(v010);
-            double d110 = x1y1z0.dot(v110);
+            double d000 = dot(x0y0z0, v000);
+            double d100 = dot(x1y0z0, v100);
+            double d010 = dot(x0y1z0, v010);
+            double d110 = dot(x1y1z0, v110);
             
-            double d001 = x0y0z1.dot(v001);
-            double d101 = x1y0z1.dot(v101);
-            double d011 = x0y1z1.dot(v011);
-            double d111 = x1y1z1.dot(v111);
+            double d001 = dot(x0y0z1, v001);
+            double d101 = dot(x1y0z1, v101);
+            double d011 = dot(x0y1z1, v011);
+            double d111 = dot(x1y1z1, v111);
             
             /// Interpolate dot product values at sample point using polynomial interpolation 6x^5 - 15x^4 + 10x^3
             double yf = Y - Y0; // Float offset inside the cube [0, 1]
