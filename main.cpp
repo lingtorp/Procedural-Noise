@@ -74,17 +74,13 @@ void draw(Semaphore* qsem, Semaphore* sem, Region reg, const double* time, uint3
     while (sem->try_wait()) {
       for (size_t x = reg.x0; x <= reg.x1; x++) {
         for (size_t y = reg.y0; y <= reg.y1; y++) {
-          // std::vector<float> amplitudes = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
+          // std::vector<double> amplitudes = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
           // double noise = noise_gen.octaves(x, y, time, amplitudes);
           // double noise = noise_gen.domain_wrapping(x, y, time, DIVISOR);
           // double noise = noise_gen.turbulence_ridged(x, y, time, DIVISOR);
           // double noise = noise_gen.get_value(x, y);
           // double noise = noise_gen.turbulence(x, y, DIVISOR);
           double noise = noise_gen.fbm(x, y, *time, DIVISOR);
-          /// Trick to clamp values since they are out of bounds some times
-          if (noise < -1.0 || noise > 1.0) {
-            noise = noise < -1.0 ? -1.0 : 1.0;
-          }
           double color = 0.5 + noise * 0.5;
           color = std::sqrt(color); // Gamma-2 correction
           auto ir = uint32_t(color * 255);
