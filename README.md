@@ -1,5 +1,5 @@
 # Procedural-Noise
-Implementation of an assortment of noise functions, mainly used in other projects. Bundled is an noise explorer for real time tweaking and noise visualization.
+Implementation of an assortment of noise functions in *C++11*. Bundled is an noise explorer for real time tweaking and noise visualization.
 
 # Goals
 * Provide a standard cross-platform (Linux, macOS) implementation of a bunch of noise functions/algorithms together with references to the sources and/or authors.
@@ -14,6 +14,7 @@ The end objective for this library is to be the drop-in noise generation source 
 * C++ standard library
 * GLM 
 ## Noise explorer program
+* _(all of the above)_
 * SDL2
 * OpenGL
 * ImGUI
