@@ -13,6 +13,7 @@ struct OpenGLState {
 OpenGLState init_opengl() {
   glewExperimental = (GLboolean) true;
   glewInit();
+  return {};
 }
 
 void draw_opengl(const OpenGLState& gl_state) {
