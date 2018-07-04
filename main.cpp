@@ -68,7 +68,7 @@ public:
   }
 };
 
-void draw(Semaphore* qsem, Semaphore* sem, Region reg, const double* time, uint32_t* pixels, const Noise& noise_gen) {
+void draw(Semaphore* qsem, Semaphore* sem, Region reg, const double* time, uint32_t* pixels, const pn::generator& noise_gen) {
   while (qsem->peek()) {
     std::this_thread::sleep_for(std::chrono::nanoseconds(100));
     while (sem->try_wait()) {
@@ -78,7 +78,7 @@ void draw(Semaphore* qsem, Semaphore* sem, Region reg, const double* time, uint3
           // double noise = noise_gen.octaves(x, y, time, amplitudes);
           // double noise = noise_gen.domain_wrapping(x, y, time, DIVISOR);
           // double noise = noise_gen.turbulence_ridged(x, y, time, DIVISOR);
-          // double noise = noise_gen.get_value(x, y);
+          // double noise = noise_gen(x, y);
           // double noise = noise_gen.turbulence(x, y, DIVISOR);
           double noise = noise_gen.fbm(x, y, *time, DIVISOR);
           double color = 0.5 + noise * 0.5;
@@ -115,7 +115,7 @@ int main() {
   SDL_Surface* scr = SDL_GetWindowSurface(window);
   uint32_t* pixels = (uint32_t*) scr->pixels;
   
-  Simplex::Patent noise(SEED);
+  pn::simplex::patent noise(SEED);
   double time = 0.0;
   
   const size_t num_threads = std::thread::hardware_concurrency() == 0 ? 4 : std::thread::hardware_concurrency();
