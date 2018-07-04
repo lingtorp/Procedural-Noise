@@ -3,11 +3,14 @@
 
 #include <random>
 #include <algorithm>
-#include "vector.hpp"
 #include <iostream>
-#include <SDL2/SDL_log.h>
-#include <stdint.h>
+#include <cstdint>
 #include <array>
+#include <glm/vec3.hpp>
+#include <glm/vec2.hpp>
+#include <glm/geometric.hpp>
+#define GLM_ENABLE_EXPERIMENTAL # compAdd
+#include <glm/gtx/component_wise.hpp>
 
 // TODO: Color mapping module (noise + color scheme --> vector or smt)
 // TODO: Doxygen style comments
@@ -51,7 +54,7 @@ public:
     }
   
     /// 2D turbulence noise which simulates fBm
-    double fbm(Vec2<double> v, double zoom_factor) const {
+    double fbm(glm::vec2 v, double zoom_factor) const {
         return fbm(v.x, v.y, zoom_factor);
     }
 
@@ -67,7 +70,7 @@ public:
     }
 
     /// 3D turbulence noise which simulates fBm
-    double fbm(Vec3<double> v, double zoom_factor) const {
+    double fbm(glm::vec3 v, double zoom_factor) const {
         return fbm(v.x, v.y, v.z, zoom_factor);
     }
   
@@ -157,17 +160,17 @@ public:
 
     /// Warps the domain of the noise function creating more natural looking features
     double domain_wrapping(double x, double y, double z, double scale) const {
-        Vec3<double> p{x, y, z};
-        Vec3<double> offset{50.2, 10.3, 10.5};
+        glm::vec3 p{x, y, z};
+        glm::vec3 offset{50.2, 10.3, 10.5};
 
-        Vec3<double> q{fbm(p + offset, scale), fbm(p + offset, scale), fbm(p + offset, scale)};
-        Vec3<double> qq{100.0*q.x, 100.0*q.y, 100.0*q.z};
+        glm::vec3 q{fbm(p + offset, scale), fbm(p + offset, scale), fbm(p + offset, scale)};
+        glm::vec3 qq{100.0*q.x, 100.0*q.y, 100.0*q.z};
 
         /// Adjusting the scales in r makes a cool ripple effect through the noise
-        Vec3<double> r{fbm(p + qq + Vec3<double>{1.7, 9.2, 5.1}, scale * 1),
-                       fbm(p + qq + Vec3<double>{8.3, 2.8, 2.5}, scale * 1),
-                       fbm(p + qq + Vec3<double>{1.2, 6.9, 8.4}, scale * 1)};
-        Vec3<double> rr{100.0*r.x, 100.0*r.y, 100.0*r.z};
+        glm::vec3 r{fbm(p + qq + glm::vec3{1.7, 9.2, 5.1}, scale * 1),
+                       fbm(p + qq + glm::vec3{8.3, 2.8, 2.5}, scale * 1),
+                       fbm(p + qq + glm::vec3{1.2, 6.9, 8.4}, scale * 1)};
+        glm::vec3 rr{100.0*r.x, 100.0*r.y, 100.0*r.z};
 
         return fbm(p + rr, scale);
     }
@@ -206,14 +209,14 @@ namespace Simplex {
         /********************************** Simplex 2D Noise **********************************/
         
         /// Skews the coordinate to normal Euclidean coordinate system
-        Vec2<double> skew(Vec2<double> v) const {
+        glm::vec2 skew(glm::vec2 v) const {
             const double F = (std::sqrt(1.0 + 2.0) - 1.0) / 2.0;
             double s = (v.x + v.y) * F;
             return {v.x + s, v.y + s};
         }
         
         /// Unskews the coordinate back to the simpletic coordinate system
-        Vec2<double> unskew(Vec2<double> v) const {
+        glm::vec2 unskew(glm::vec2 v) const {
             const double G = (1.0 - (1.0 / sqrt(2.0 + 1.0))) / 2.0;
             double s = (v.x + v.y) * G;
             return {v.x - s, v.y - s};
@@ -226,7 +229,7 @@ namespace Simplex {
         }
         
         /// Given a coordinate (i, j) generates a gradient vector
-        Vec2<double> grad(int i, int j) const {
+        glm::vec2 grad(int i, int j) const {
             uint32_t bit_sum = b(i, j, 0) + b(j, i, 1) + b(i, j, 2) + b(j, i, 3);
             auto u = (bit_sum & 0b01) ? 1.0 : 0.0;
             auto v = (bit_sum & 0b10) ? 1.0 : 0.0;
@@ -248,8 +251,8 @@ namespace Simplex {
             /// Unskew - find first vertex of the simplex
             const double G = (3.0 - std::sqrt(2.0 + 1.0)) / 6.0;
             double t = (i + j) * G;
-            Vec2<double> cell_origin{i - t, j - t};
-            Vec2<double> vertex_a = Vec2<double>{x, y} - cell_origin;
+            glm::vec2 cell_origin{i - t, j - t};
+            glm::vec2 vertex_a = glm::vec2{x, y} - cell_origin;
             
             // Figure out which vertex is next
             auto x_step = 0;
@@ -261,8 +264,8 @@ namespace Simplex {
             }
             
             // A change of one unit step is; x = x' + (x' + y') * G <--> x = 1.0 + (1.0 + 1.0) * G <--> x = 1.0 + 2.0 * G
-            Vec2<double> vertex_b{vertex_a.x - x_step + G, vertex_a.y - y_step + G};
-            Vec2<double> vertex_c{vertex_a.x - 1.0 + 2.0 * G, vertex_a.y - 1.0 + 2.0 * G};
+            glm::vec2 vertex_b{vertex_a.x - x_step + G, vertex_a.y - y_step + G};
+            glm::vec2 vertex_c{vertex_a.x - 1.0 + 2.0 * G, vertex_a.y - 1.0 + 2.0 * G};
             
             auto grad_a = grad(i, j);
             auto grad_b = grad(i + x_step, j + y_step);
@@ -275,17 +278,17 @@ namespace Simplex {
             
             double t0 = radius - vertex_a.length() * vertex_a.length();
             if (t0 > 0) {
-                sum += std::pow(t0, 4) * grad_a.dot(vertex_a);
+                sum += std::pow(t0, 4) * glm::dot(grad_a, vertex_a);
             }
             
             double t1 = radius - vertex_b.length() * vertex_b.length();
             if (t1 > 0) {
-                sum += std::pow(t1, 4) * grad_b.dot(vertex_b);
+                sum += std::pow(t1, 4) * glm::dot(grad_b, vertex_b);
             }
             
             double t2 = radius - vertex_c.length() * vertex_c.length();
             if (t2 > 0) {
-                sum += std::pow(t2, 4) * grad_c.dot(vertex_c);
+                sum += std::pow(t2, 4) * glm::dot(grad_c, vertex_c);
             }
             
             return 220.0 * sum;
@@ -305,7 +308,7 @@ namespace Simplex {
          * @param rel Relative vector of (x, y, z) and the vertex in the unskewed coordinate system.
          * @return Gradient vector
          */
-        Vec3<double> grad(Vec3<double> vertex, Vec3<double> rel) const {
+        glm::vec3 grad(glm::vec3 vertex, glm::vec3 rel) const {
             int i = (int) vertex.x;
             int j = (int) vertex.y;
             int k = (int) vertex.z;
@@ -313,7 +316,7 @@ namespace Simplex {
                       b(i, j, k, 6) + b(j, k, i, 7);
             
             // Magnitude computation based on the three lower bits of the bit sum
-            Vec3<double> pqr = rel;
+            glm::vec3 pqr = rel;
             if (bit(sum, 0) == !bit(sum, 1)) { // xor on bit 0, 1 --> rotation and zeroing
                 if (bit(sum, 0)) { // Rotation
                     pqr.x = rel.y;
@@ -347,14 +350,14 @@ namespace Simplex {
         }
         
         /// Skews the coordinate to normal Euclidean coordinate system
-        Vec3<double> skew(Vec3<double> v) const {
+        glm::vec3 skew(glm::vec3 v) const {
             const double F = (std::sqrt(1.0 + 3.0) - 1.0) / 3;
             double s = (v.x + v.y + v.z) * F;
             return {v.x + s, v.y + s, v.z + s};
         }
         
         /// Unskews the coordinate back to the simpletic coordinate system
-        Vec3<double> unskew(Vec3<double> v) const {
+        glm::vec3 unskew(glm::vec3 v) const {
             const double G = (1.0 - (1.0 / sqrt(3.0 + 1.0))) / 3.0;
             double s = (v.x + v.y + v.z) * G;
             return {v.x - s, v.y - s, v.z - s};
@@ -367,29 +370,29 @@ namespace Simplex {
          * @param vertex Vertex in the unit simplex cell (unskewed)
          * @return Contribution from the vertex
          */
-        double kernel(Vec3<double> uvw, Vec3<double> ijk, Vec3<double> vertex) const {
+        double kernel(glm::vec3 uvw, glm::vec3 ijk, glm::vec3 vertex) const {
             double sum = 0.0;
-            Vec3<double> rel = uvw - vertex; // Relative simplex cell vertex
+            glm::vec3 rel = uvw - vertex; // Relative simplex cell vertex
             double t = 0.6 - rel.length() * rel.length(); // 0.6 - x*x - y*y - z*z
             if (t > 0) {
-                Vec3<double> pqr = grad(ijk + vertex, rel); // Generate gradient vector for vertex
+                glm::vec3 pqr = grad(ijk + vertex, rel); // Generate gradient vector for vertex
                 t *= t;
-                sum += 8 * t * t * pqr.sum();
+                sum += 8 * t * t * glm::compAdd(pqr);
             }
             return sum;
         }
         
         double get_value(double x, double y, double z) const override {
             /// Skew in the coordinate to the euclidean coordinate system
-            Vec3<double> xyz = {x, y, z};
-            Vec3<double> xyzs = skew(xyz);
+            glm::vec3 xyz = {x, y, z};
+            glm::vec3 xyzs = skew(xyz);
             /// Skewed unit simplex cell
-            Vec3<double> ijks = xyzs.floor(); // First vertex in euclidean coordinates
-            Vec3<double> ijk = unskew(ijks); // First vertex in the simpletic cell
+            glm::vec3 ijks = glm::floor(xyzs); // First vertex in euclidean coordinates
+            glm::vec3 ijk = unskew(ijks); // First vertex in the simpletic cell
             
             /// Finding the traversal order of vertices of the unit simplex in which (x,y,z) is in.
-            Vec3<double> uvw = xyz - ijk; // Relative unit simplex cell origin
-            std::array<Vec3<double>, 4> vertices; // n + 1 is the number of vertices in a n-dim. simplex
+            glm::vec3 uvw = xyz - ijk; // Relative unit simplex cell origin
+            std::array<glm::vec3, 4> vertices; // n + 1 is the number of vertices in a n-dim. simplex
             vertices[0] = unskew({0.0, 0.0, 0.0});
             if (uvw.x > uvw.y) {
                 if (uvw.y > uvw.z) {
@@ -443,10 +446,10 @@ namespace Simplex {
     template<int num_grads = 256>
     class Tables : public Noise {
         /// 2D Normalized gradients table
-        std::array<Vec2<double>, num_grads> grads2;
+        std::array<glm::vec2, num_grads> grads2;
         
         /// 3D Normalized gradients table
-        std::array<Vec3<double>, num_grads> grads3;
+        std::array<glm::vec3, num_grads> grads3;
         
         /// Permutation table for indices to the gradients
         std::array<u_char, num_grads> perms;
@@ -460,9 +463,9 @@ namespace Simplex {
                 double x = distr(engine);
                 double y = distr(engine);
                 double z = distr(engine);
-                auto grad_vector = Vec2<double>{x, y}.normalize();
+                auto grad_vector = glm::normalize(glm::vec2{x, y});
                 grads2[i] = grad_vector;
-                auto grad3_vector = Vec3<double>{x, y, z}.normalize();
+                auto grad3_vector = glm::normalize(glm::vec3{x, y, z});
                 grads3[i] = grad3_vector;
             }
             
@@ -484,8 +487,8 @@ namespace Simplex {
             
             const double G = (3.0 - std::sqrt(2.0 + 1.0)) / 6.0; // G = (1 - (1 / sqrt(n + 1)) / n
             double t = (i + j) * G;
-            Vec2<double> cell_origin{i - t, j - t};
-            Vec2<double> vertex_a = Vec2<double>{x, y} - cell_origin;
+            glm::vec2 cell_origin{i - t, j - t};
+            glm::vec2 vertex_a = glm::vec2{x, y} - cell_origin;
             
             auto x_step = 0;
             auto y_step = 0;
@@ -495,8 +498,8 @@ namespace Simplex {
                 y_step = 1;
             }
             
-            Vec2<double> vertex_b{vertex_a.x - x_step + G, vertex_a.y - y_step + G};
-            Vec2<double> vertex_c{vertex_a.x - 1.0 + 2.0 * G, vertex_a.y - 1.0 + 2.0 * G};
+            glm::vec2 vertex_b{vertex_a.x - x_step + G, vertex_a.y - y_step + G};
+            glm::vec2 vertex_c{vertex_a.x - 1.0 + 2.0 * G, vertex_a.y - 1.0 + 2.0 * G};
             
             auto ii = i % 255; // FIXME: Bit mask instead? Measure speedup
             auto jj = j % 255;
@@ -543,10 +546,10 @@ namespace Perlin {
     template<int num_grads = 256>
     class Improved : public Noise {
         /// 2D Normalized gradients table
-        std::array<Vec2<double>, 4> grads;
+        std::array<glm::vec2, 4> grads;
         
         /// 3D Normalized gradients table
-        std::array<Vec3<double>, 16> grads3;
+        std::array<glm::vec3, 16> grads3;
         
         /// Permutation table for indices to the gradients (2D)
         std::array<u_char, num_grads> perms;
@@ -560,30 +563,30 @@ namespace Perlin {
             std::uniform_real_distribution<> distr(-1.0, 1.0);
             /// 4 gradients for each edge of a unit square, no need for padding, is power of 2
             grads = {
-                    Vec2<double>{ 1,  0},
-                    Vec2<double>{ 0,  1},
-                    Vec2<double>{-1,  0},
-                    Vec2<double>{ 0, -1}
+                    glm::vec2{ 1,  0},
+                    glm::vec2{ 0,  1},
+                    glm::vec2{-1,  0},
+                    glm::vec2{ 0, -1}
             };
             // FIXME: Is all of the vectors inside grads?
             /// 12 gradients from the center to each edge of a unit cube, 4 duplicated vectors for padding so that the modulo is on a power of 2 (faster)
             grads3 = {
-                    Vec3<double>{ 1,  1,  0},
-                    Vec3<double>{-1,  1,  0},
-                    Vec3<double>{ 1, -1,  0},
-                    Vec3<double>{-1, -1,  0},
-                    Vec3<double>{ 1,  0,  1},
-                    Vec3<double>{-1,  0,  1},
-                    Vec3<double>{ 1,  0, -1},
-                    Vec3<double>{-1,  0, -1},
-                    Vec3<double>{ 0,  1,  1},
-                    Vec3<double>{ 0, -1,  1},
-                    Vec3<double>{ 0,  1, -1},
-                    Vec3<double>{ 0, -1, -1},
-                    Vec3<double>{ 1,  1,  0},
-                    Vec3<double>{-1,  1,  0},
-                    Vec3<double>{ 0, -1,  1},
-                    Vec3<double>{ 0, -1, -1}
+                    glm::vec3{ 1,  1,  0},
+                    glm::vec3{-1,  1,  0},
+                    glm::vec3{ 1, -1,  0},
+                    glm::vec3{-1, -1,  0},
+                    glm::vec3{ 1,  0,  1},
+                    glm::vec3{-1,  0,  1},
+                    glm::vec3{ 1,  0, -1},
+                    glm::vec3{-1,  0, -1},
+                    glm::vec3{ 0,  1,  1},
+                    glm::vec3{ 0, -1,  1},
+                    glm::vec3{ 0,  1, -1},
+                    glm::vec3{ 0, -1, -1},
+                    glm::vec3{ 1,  1,  0},
+                    glm::vec3{-1,  1,  0},
+                    glm::vec3{ 0, -1,  1},
+                    glm::vec3{ 0, -1, -1}
             };
             
             /// Fill gradient lookup array with random indices to the gradients list
@@ -605,22 +608,22 @@ namespace Perlin {
             int Y1 = (int) std::ceil(Y);
             
             /// Gradients using hashed indices from lookup list
-            Vec2<double> x0y0 = grads[perms[(X0 + perms[Y0 % perms.size()]) % perms.size()]];
-            Vec2<double> x1y0 = grads[perms[(X1 + perms[Y0 % perms.size()]) % perms.size()]];
-            Vec2<double> x0y1 = grads[perms[(X0 + perms[Y1 % perms.size()]) % perms.size()]];
-            Vec2<double> x1y1 = grads[perms[(X1 + perms[Y1 % perms.size()]) % perms.size()]];
+            glm::vec2 x0y0 = grads[perms[(X0 + perms[Y0 % perms.size()]) % perms.size()]];
+            glm::vec2 x1y0 = grads[perms[(X1 + perms[Y0 % perms.size()]) % perms.size()]];
+            glm::vec2 x0y1 = grads[perms[(X0 + perms[Y1 % perms.size()]) % perms.size()]];
+            glm::vec2 x1y1 = grads[perms[(X1 + perms[Y1 % perms.size()]) % perms.size()]];
             
             /// Vectors from gradients to point in unit square
-            auto v00 = Vec2<double>{X - X0, Y - Y0};
-            auto v10 = Vec2<double>{X - X1, Y - Y0};
-            auto v01 = Vec2<double>{X - X0, Y - Y1};
-            auto v11 = Vec2<double>{X - X1, Y - Y1};
+            auto v00 = glm::vec2{X - X0, Y - Y0};
+            auto v10 = glm::vec2{X - X1, Y - Y0};
+            auto v01 = glm::vec2{X - X0, Y - Y1};
+            auto v11 = glm::vec2{X - X1, Y - Y1};
             
             /// Contribution of gradient vectors by dot product between relative vectors and gradients
-            double d00 = x0y0.dot(v00);
-            double d10 = x1y0.dot(v10);
-            double d01 = x0y1.dot(v01);
-            double d11 = x1y1.dot(v11);
+            double d00 = glm::dot(x0y0, v00);
+            double d10 = glm::dot(x1y0, v10);
+            double d01 = glm::dot(x0y1, v01);
+            double d11 = glm::dot(x1y1, v11);
             
             /// Interpolate dot product values at sample point using polynomial interpolation 6x^5 - 15x^4 + 10x^3
             double yf = Y - Y0; // Float offset inside the square [0, 1]
@@ -649,34 +652,34 @@ namespace Perlin {
             int Z1 = (int) std::ceil(Z);
             
             /// Gradients using hashed indices from lookup list
-            Vec3<double> x0y0z0 = grads3[perms[(X0 + perms[(Y0 + perms[Z0 % perms.size()]) % perms.size()]) %
+            glm::vec3 x0y0z0 = grads3[perms[(X0 + perms[(Y0 + perms[Z0 % perms.size()]) % perms.size()]) %
                                                perms.size()]];
-            Vec3<double> x1y0z0 = grads3[perms[(X1 + perms[(Y0 + perms[Z0 % perms.size()]) % perms.size()]) %
+            glm::vec3 x1y0z0 = grads3[perms[(X1 + perms[(Y0 + perms[Z0 % perms.size()]) % perms.size()]) %
                                                perms.size()]];
-            Vec3<double> x0y1z0 = grads3[perms[(X0 + perms[(Y1 + perms[Z0 % perms.size()]) % perms.size()]) %
+            glm::vec3 x0y1z0 = grads3[perms[(X0 + perms[(Y1 + perms[Z0 % perms.size()]) % perms.size()]) %
                                                perms.size()]];
-            Vec3<double> x1y1z0 = grads3[perms[(X1 + perms[(Y1 + perms[Z0 % perms.size()]) % perms.size()]) %
+            glm::vec3 x1y1z0 = grads3[perms[(X1 + perms[(Y1 + perms[Z0 % perms.size()]) % perms.size()]) %
                                                perms.size()]];
             
-            Vec3<double> x0y0z1 = grads3[perms[(X0 + perms[(Y0 + perms[Z1 % perms.size()]) % perms.size()]) %
+            glm::vec3 x0y0z1 = grads3[perms[(X0 + perms[(Y0 + perms[Z1 % perms.size()]) % perms.size()]) %
                                                perms.size()]];
-            Vec3<double> x1y0z1 = grads3[perms[(X1 + perms[(Y0 + perms[Z1 % perms.size()]) % perms.size()]) %
+            glm::vec3 x1y0z1 = grads3[perms[(X1 + perms[(Y0 + perms[Z1 % perms.size()]) % perms.size()]) %
                                                perms.size()]];
-            Vec3<double> x0y1z1 = grads3[perms[(X0 + perms[(Y1 + perms[Z1 % perms.size()]) % perms.size()]) %
+            glm::vec3 x0y1z1 = grads3[perms[(X0 + perms[(Y1 + perms[Z1 % perms.size()]) % perms.size()]) %
                                                perms.size()]];
-            Vec3<double> x1y1z1 = grads3[perms[(X1 + perms[(Y1 + perms[Z1 % perms.size()]) % perms.size()]) %
+            glm::vec3 x1y1z1 = grads3[perms[(X1 + perms[(Y1 + perms[Z1 % perms.size()]) % perms.size()]) %
                                                perms.size()]];
             
             /// Vectors from gradients to point in unit cube
-            auto v000 = Vec3<double>{X - X0, Y - Y0, Z - Z0};
-            auto v100 = Vec3<double>{X - X1, Y - Y0, Z - Z0};
-            auto v010 = Vec3<double>{X - X0, Y - Y1, Z - Z0};
-            auto v110 = Vec3<double>{X - X1, Y - Y1, Z - Z0};
+            auto v000 = glm::vec3{X - X0, Y - Y0, Z - Z0};
+            auto v100 = glm::vec3{X - X1, Y - Y0, Z - Z0};
+            auto v010 = glm::vec3{X - X0, Y - Y1, Z - Z0};
+            auto v110 = glm::vec3{X - X1, Y - Y1, Z - Z0};
             
-            auto v001 = Vec3<double>{X - X0, Y - Y0, Z - Z1};
-            auto v101 = Vec3<double>{X - X1, Y - Y0, Z - Z1};
-            auto v011 = Vec3<double>{X - X0, Y - Y1, Z - Z1};
-            auto v111 = Vec3<double>{X - X1, Y - Y1, Z - Z1};
+            auto v001 = glm::vec3{X - X0, Y - Y0, Z - Z1};
+            auto v101 = glm::vec3{X - X1, Y - Y0, Z - Z1};
+            auto v011 = glm::vec3{X - X0, Y - Y1, Z - Z1};
+            auto v111 = glm::vec3{X - X1, Y - Y1, Z - Z1};
             
             /// Contribution of gradient vectors by dot product between relative vectors and gradients
             double d000 = dot(x0y0z0, v000);
@@ -722,10 +725,10 @@ namespace Perlin {
      */
     class Original : public Noise {
         /// 2D Normalized gradients table
-        std::vector<Vec2<double>> grads;
+        std::vector<glm::vec2> grads;
         
         /// 3D Normalized gradients table
-        std::vector<Vec3<double>> grads3;
+        std::vector<glm::vec3> grads3;
         
         /// Permutation table for indices to the gradients
         std::vector<u_char> perms;
@@ -739,9 +742,9 @@ namespace Perlin {
                 double x = distr(engine);
                 double y = distr(engine);
                 double z = distr(engine);
-                auto grad_vector = Vec2<double>{x, y}.normalized();
+                auto grad_vector = glm::normalize(glm::vec2{x, y});
                 grads[i] = grad_vector;
-                auto grad3_vector = Vec3<double>{x, y, z}.normalized();
+                auto grad3_vector = glm::normalize(glm::vec3{x, y, z});
                 grads3[i] = grad3_vector;
             }
             
@@ -765,22 +768,22 @@ namespace Perlin {
             
             /// Gradients using hashed indices from lookup list
             // FIXME: Implement variation where perms.size() is a power of two in order to do a bit masking instead, measure speedup.
-            Vec2<double> x0y0 = grads[perms[(X0 + perms[Y0 % perms.size()]) % perms.size()]];
-            Vec2<double> x1y0 = grads[perms[(X1 + perms[Y0 % perms.size()]) % perms.size()]];
-            Vec2<double> x0y1 = grads[perms[(X0 + perms[Y1 % perms.size()]) % perms.size()]];
-            Vec2<double> x1y1 = grads[perms[(X1 + perms[Y1 % perms.size()]) % perms.size()]];
+            glm::vec2 x0y0 = grads[perms[(X0 + perms[Y0 % perms.size()]) % perms.size()]];
+            glm::vec2 x1y0 = grads[perms[(X1 + perms[Y0 % perms.size()]) % perms.size()]];
+            glm::vec2 x0y1 = grads[perms[(X0 + perms[Y1 % perms.size()]) % perms.size()]];
+            glm::vec2 x1y1 = grads[perms[(X1 + perms[Y1 % perms.size()]) % perms.size()]];
             
             /// Vectors from gradients to point in unit square
-            auto v00 = Vec2<double>{X - X0, Y - Y0};
-            auto v10 = Vec2<double>{X - X1, Y - Y0};
-            auto v01 = Vec2<double>{X - X0, Y - Y1};
-            auto v11 = Vec2<double>{X - X1, Y - Y1};
+            auto v00 = glm::vec2{X - X0, Y - Y0};
+            auto v10 = glm::vec2{X - X1, Y - Y0};
+            auto v01 = glm::vec2{X - X0, Y - Y1};
+            auto v11 = glm::vec2{X - X1, Y - Y1};
             
             /// Contribution of gradient vectors by dot product between relative vectors and gradients
-            double d00 = x0y0.dot(v00);
-            double d10 = x1y0.dot(v10);
-            double d01 = x0y1.dot(v01);
-            double d11 = x1y1.dot(v11);
+            double d00 = glm::dot(x0y0, v00);
+            double d10 = glm::dot(x1y0, v10);
+            double d01 = glm::dot(x0y1, v01);
+            double d11 = glm::dot(x1y1, v11);
             
             /// Interpolate dot product values at sample point using polynomial interpolation 6x^5 - 15x^4 + 10x^3
             double yf = Y - Y0; // Float offset inside the square [0, 1]
@@ -809,34 +812,34 @@ namespace Perlin {
             int Z1 = (int) std::ceil(Z);
             
             /// Gradients using hashed indices from lookup list
-            Vec3<double> x0y0z0 = grads3[perms[(X0 + perms[(Y0 + perms[Z0 % perms.size()]) % perms.size()]) %
+            glm::vec3 x0y0z0 = grads3[perms[(X0 + perms[(Y0 + perms[Z0 % perms.size()]) % perms.size()]) %
                                                perms.size()]];
-            Vec3<double> x1y0z0 = grads3[perms[(X1 + perms[(Y0 + perms[Z0 % perms.size()]) % perms.size()]) %
+            glm::vec3 x1y0z0 = grads3[perms[(X1 + perms[(Y0 + perms[Z0 % perms.size()]) % perms.size()]) %
                                                perms.size()]];
-            Vec3<double> x0y1z0 = grads3[perms[(X0 + perms[(Y1 + perms[Z0 % perms.size()]) % perms.size()]) %
+            glm::vec3 x0y1z0 = grads3[perms[(X0 + perms[(Y1 + perms[Z0 % perms.size()]) % perms.size()]) %
                                                perms.size()]];
-            Vec3<double> x1y1z0 = grads3[perms[(X1 + perms[(Y1 + perms[Z0 % perms.size()]) % perms.size()]) %
+            glm::vec3 x1y1z0 = grads3[perms[(X1 + perms[(Y1 + perms[Z0 % perms.size()]) % perms.size()]) %
                                                perms.size()]];
             
-            Vec3<double> x0y0z1 = grads3[perms[(X0 + perms[(Y0 + perms[Z1 % perms.size()]) % perms.size()]) %
+            glm::vec3 x0y0z1 = grads3[perms[(X0 + perms[(Y0 + perms[Z1 % perms.size()]) % perms.size()]) %
                                                perms.size()]];
-            Vec3<double> x1y0z1 = grads3[perms[(X1 + perms[(Y0 + perms[Z1 % perms.size()]) % perms.size()]) %
+            glm::vec3 x1y0z1 = grads3[perms[(X1 + perms[(Y0 + perms[Z1 % perms.size()]) % perms.size()]) %
                                                perms.size()]];
-            Vec3<double> x0y1z1 = grads3[perms[(X0 + perms[(Y1 + perms[Z1 % perms.size()]) % perms.size()]) %
+            glm::vec3 x0y1z1 = grads3[perms[(X0 + perms[(Y1 + perms[Z1 % perms.size()]) % perms.size()]) %
                                                perms.size()]];
-            Vec3<double> x1y1z1 = grads3[perms[(X1 + perms[(Y1 + perms[Z1 % perms.size()]) % perms.size()]) %
+            glm::vec3 x1y1z1 = grads3[perms[(X1 + perms[(Y1 + perms[Z1 % perms.size()]) % perms.size()]) %
                                                perms.size()]];
             
             /// Vectors from gradients to point in unit cube
-            auto v000 = Vec3<double>{X - X0, Y - Y0, Z - Z0};
-            auto v100 = Vec3<double>{X - X1, Y - Y0, Z - Z0};
-            auto v010 = Vec3<double>{X - X0, Y - Y1, Z - Z0};
-            auto v110 = Vec3<double>{X - X1, Y - Y1, Z - Z0};
+            auto v000 = glm::vec3{X - X0, Y - Y0, Z - Z0};
+            auto v100 = glm::vec3{X - X1, Y - Y0, Z - Z0};
+            auto v010 = glm::vec3{X - X0, Y - Y1, Z - Z0};
+            auto v110 = glm::vec3{X - X1, Y - Y1, Z - Z0};
             
-            auto v001 = Vec3<double>{X - X0, Y - Y0, Z - Z1};
-            auto v101 = Vec3<double>{X - X1, Y - Y0, Z - Z1};
-            auto v011 = Vec3<double>{X - X0, Y - Y1, Z - Z1};
-            auto v111 = Vec3<double>{X - X1, Y - Y1, Z - Z1};
+            auto v001 = glm::vec3{X - X0, Y - Y0, Z - Z1};
+            auto v101 = glm::vec3{X - X1, Y - Y0, Z - Z1};
+            auto v011 = glm::vec3{X - X0, Y - Y1, Z - Z1};
+            auto v111 = glm::vec3{X - X1, Y - Y1, Z - Z1};
             
             /// Contribution of gradient vectors by dot product between relative vectors and gradients
             double d000 = dot(x0y0z0, v000);
